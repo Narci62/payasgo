@@ -1,56 +1,56 @@
-# name: 🚀 Deploy Laravel to LWS cPanel
+name: 🚀 Deploy Laravel to LWS cPanel
 
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  push:
+    branches:
+      - main
 
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-#     steps:
-#       # 1. Récupérer le code
-#       - name: Checkout repository
-#         uses: actions/checkout@v3
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-#       # 2. Installer PHP & Composer
-#       - name: Setup PHP
-#         uses: shivammathur/setup-php@v2
-#         with:
-#           php-version: '8.3'
-#           extensions: mbstring, bcmath, curl, intl, pdo, mysql
+      # 2. Installer PHP & Composer
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, curl, intl, pdo, mysql
 
-#       - name: Install dependencies
-#         run: composer install --no-dev --optimize-autoloader
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader
 
-#       # # 3. Build frontend assets (si nécessaire)
-#       # - name: Build assets
-#       #   run: |
-#       #     npm install
-#       #     npm run build || npm run prod
+      # # 3. Build frontend assets (si nécessaire)
+      # - name: Build assets
+      #   run: |
+      #     npm install
+      #     npm run build || npm run prod
 
-#       # 4. Déployer sur cPanel via FTP
-#       - name: Deploy to cPanel (FTP)
-#         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-#         with:
-#           server: ${{ secrets.CPANEL_TRUELINE_HOST }}
-#           username: ${{ secrets.CPANEL_TRUELINE_USERNAME }}
-#           password: ${{ secrets.CPANEL_TRUELINE_PASSWORD }}
-#           server-dir: ${{ secrets.CPANEL_TRUELINE_PATH }}
-#           exclude: |
-#             **/.git*
-#             **/.github*
-#             **/node_modules/*
-#             **/tests/*
-#             **/storage/logs/*
-#             **/vendor/*
-#             **/.env
+      # 4. Déployer sur cPanel via FTP
+      - name: Deploy to cPanel (FTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_TRUELINE_HOST }}
+          username: ${{ secrets.CPANEL_TRUELINE_USERNAME }}
+          password: ${{ secrets.CPANEL_TRUELINE_PASSWORD }}
+          server-dir: ${{ secrets.CPANEL_TRUELINE_PATH }}
+          exclude: |
+            **/.git*
+            **/.github*
+            **/node_modules/*
+            **/tests/*
+            **/storage/logs/*
+            **/vendor/*
+            **/.env
 
-#       # 5. Exécuter artisan optimizations (via FTP hack)
-#       - name: Run Laravel commands
-#         run: |
-#           echo "php artisan config:cache" > artisan-commands.sh
-#           echo "php artisan route:cache" >> artisan-commands.sh
-#           echo "php artisan view:cache" >> artisan-commands.sh
-#           echo "php artisan migrate --force" >> artisan-commands.sh
+      # 5. Exécuter artisan optimizations (via FTP hack)
+      - name: Run Laravel commands
+        run: |
+          echo "php artisan config:cache" > artisan-commands.sh
+          echo "php artisan route:cache" >> artisan-commands.sh
+          echo "php artisan view:cache" >> artisan-commands.sh
+          echo "php artisan migrate --force" >> artisan-commands.sh
