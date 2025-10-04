@@ -46,6 +46,13 @@ class DeviceStatusResource extends JsonResource
             'subscription' => [
                 'expires_at' => $financingPlan?->next_payment_due_date,
                 'grace_period_ends_at' => $financingPlan?->grace_period_ends_at,
+                'next_offline_unlock_code' => $this->financingPlan?->next_offline_unlock_code,
+                'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
+                'amount_remaining' => $this->financingPlan?->remaining_balance,
+                'payment_instructions' => '*880*2*3876*'. $this->financingPlan?->installment_amount .'*30293*code#',
+                'identifiant_client' => "Référence client : 123456",
+
+
             ],
             'config' => [
                 'check_interval_minutes' => 120, // Intervalle plus long
@@ -66,9 +73,10 @@ class DeviceStatusResource extends JsonResource
                 'title' => 'Téléphone proche de la suspension',
                 'message' => 'Votre versement est en retard. Veuillez régler votre facture pour ne pas subir de suspension.',
                 'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => 'Payez via Fedapay ou Mobile Money au +229 XX XX XX XX.',
+                'payment_instructions' => '*880*2*38765*'. $this->financingPlan?->installment_amount .'*302938*code#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
-                'support_phone_number' => '+229 YY YY YY YY',
+                'support_phone_number' => '+229 01 76 65 65',
+                'identifiant_client' => "Référence client : 123456"
             ],
             'config' => [
                 'check_interval_minutes' => 15, // Intervalle plus court pour débloquer rapidement
@@ -89,9 +97,11 @@ class DeviceStatusResource extends JsonResource
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard et vous avez dépassé la période de grâce. Veuillez régler votre facture pour débloquer votre appareil.',
                 'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => 'Payez via Fedapay ou Mobile Money au +229 XX XX XX XX.',
+                'payment_instructions' => '*880*2*3876*'. $this->financingPlan?->installment_amount .'*302938*code#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
-                'support_phone_number' => '+229 YY YY YY YY',
+                'support_phone_number' => '+229 01 76 65 65',
+                'identifiant_client' => "Référence client : 123456",
+
             ],
             'config' => [
                 'check_interval_minutes' => 15, // Intervalle plus court pour débloquer rapidement
