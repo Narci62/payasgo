@@ -40,12 +40,15 @@ class DeviceStatusResource extends JsonResource
      */
     protected function formatActiveResponse($financingPlan): array
     {
+        $expiresAt = $financingPlan?->next_payment_due_date;
+        $gracePeriodEndsAt = $financingPlan?->grace_period_ends_at;
+
         return [
             'status' => 'active',
             'lock_required' => false,
             'subscription' => [
-                'expires_at' => $financingPlan?->next_payment_due_date,
-                'grace_period_ends_at' => $financingPlan?->grace_period_ends_at,
+                'expires_at' => $expiresAt,
+                'grace_period_ends_at' => $gracePeriodEndsAt,
                 'next_offline_unlock_code' => $this->financingPlan?->next_offline_unlock_code,
                 'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
                 'amount_remaining' => $this->financingPlan?->remaining_balance,

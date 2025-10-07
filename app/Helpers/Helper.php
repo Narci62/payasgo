@@ -1,6 +1,8 @@
 <?php
 namespace App\Helpers;
 
+use Carbon\Carbon;
+
 class Helper
 {
     /**
@@ -26,5 +28,13 @@ class Helper
     public static function offlineUnlockedToken($length = 8)
     {
         return substr(str_shuffle(str_repeat("0123456789", ceil($length / 10))), 0, $length);
+    }
+
+    /***
+     * Format Date to yyy-mm-dd
+     */
+    public static function formatDate($date): string
+    {
+        return Carbon::parse($date)->format('yyyy-mm-dd');
     }
 }

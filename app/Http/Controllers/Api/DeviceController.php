@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateDeviceRequest;
 use App\Http\Resources\DeviceResource;
 use App\Models\Device;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DeviceController extends Controller
 {
@@ -33,6 +34,8 @@ class DeviceController extends Controller
      */
     public function store(StoreDeviceRequest $request)
     {
+        // log
+        Log::info('Device registration attempt', ['data' => $request->all()]);
 
         //we will check if the token exist and is valid (not used and not expired)
         $registration_token = app("App\Services\RegistrationTokenService")->validateToken($request->input('registration_token'));

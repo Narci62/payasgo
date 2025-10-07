@@ -16,12 +16,15 @@ class DeviceResource extends JsonResource
     {
         $this->loadMissing(['financingPlan']);
 
+        $expiresAt = $this->financingPlan?->next_payment_due_date;
+        $gracePeriodEndsAt = $this->financingPlan?->grace_period_ends_at;
+
         return [
             'message' => 'Appareil enrégistré avec succès',
             'device_id' => $this->public_id,
             'subscription' => [
-                'expires_at' => $this->financingPlan?->next_payment_due_date,
-                'grace_period_ends_at' => $this->financingPlan?->grace_period_ends_at,
+                'expires_at' => $expiresAt,
+                'grace_period_ends_at' => $gracePeriodEndsAt,
                 'status' => $this->financingPlan?->status,
                 'next_offline_unlock_code' => $this->financingPlan?->next_offline_unlock_code,
                 'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
