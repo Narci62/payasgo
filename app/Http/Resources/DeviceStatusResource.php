@@ -70,11 +70,11 @@ class DeviceStatusResource extends JsonResource
     protected function formatPaymentDueResponse($financingPlan): array
     {
         return [
-            'status' => 'payment_due',
+            'status' => 'bloqué',
             'lock_required' => true,
             'lock_screen_info' => [
-                'title' => 'Téléphone proche de la suspension',
-                'message' => 'Votre versement est en retard. Veuillez régler votre facture pour ne pas subir de suspension.',
+                'title' => 'Téléphone suspendu',
+                'message' => 'Votre versement est en retard. Téléphone suspendu',
                 'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
                 'payment_instructions' => '*880*2*38765*'. $this->financingPlan?->installment_amount .'*302938*code#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
