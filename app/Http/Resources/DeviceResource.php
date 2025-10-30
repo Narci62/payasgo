@@ -14,7 +14,7 @@ class DeviceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['financingPlan']);
+        $this->loadMissing(['financingPlan','client']);
 
         $expiresAt = $this->financingPlan?->next_payment_due_date;
         $gracePeriodEndsAt = $this->financingPlan?->grace_period_ends_at;
@@ -30,7 +30,7 @@ class DeviceResource extends JsonResource
                 'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
                 'amount_remaining' => $this->financingPlan?->remaining_balance,
                 'payment_instructions' => '*880*2*3876*'. $this->financingPlan?->installment_amount .'*302938*code#',
-                'identifiant_client' => "Référence client : 123456",
+                "identifiant_client" => $this->client?->reference,
             ],
             'config' => [
                 'check_interval_minutes' => 60,

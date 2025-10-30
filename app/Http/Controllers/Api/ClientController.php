@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientRequest;
+use App\Http\Resources\CheckTokenResource;
 use App\Http\Resources\ClientRessource;
 use App\Models\Client;
 use App\Services\ClientService;
@@ -58,6 +59,30 @@ class ClientController extends Controller
 
 
         return (new ClientRessource($client));
+    }
+
+    public function getUserByDeviceToken(Request $request)
+    {
+        $identifiant_client = $request->input("identifiant_client");
+
+        $client = $this->clientService->getClientByDeviceToken($identifiant_client);
+
+
+        if (!$client) {
+            return response()->json(['message' => 'Client not found'], 404);
+        }
+
+        $registrationTokens = $client->registrationTokens;
+        $registrationToken = $registrationTokens->where("used_at", null)->first();
+
+      //  dd($registrationToken);
+
+        if(!$registrationToken)
+        {
+            return response()->json(['message' => "Token has already used"], 400);
+        }
+
+        return new CheckTokenResource($client);
     }
 
     /**

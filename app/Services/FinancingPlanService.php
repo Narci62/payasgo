@@ -49,9 +49,7 @@ class FinancingPlanService
     {
         $plan = Financing_plan::where('registration_token_id', $token_id)
             ->first();
-
-
-
+            
         if (!$plan) {
             throw new \Exception("Financing plan not found");
         }
@@ -94,7 +92,7 @@ class FinancingPlanService
             'financing_plan_id' => $financingPlan->id,
             'amount' => $amountPaid,
             'method' => $method,
-            'transaction_id' => $payload['object']['id'], // ID de la transaction Fedapay
+            'transaction_id' => $transactionId, // ID de la transaction Fedapay
             'status' => 'completed',
             'paid_at' => now(),
         ]);
@@ -108,9 +106,9 @@ class FinancingPlanService
         return $date->addDays(5);
     }
 
-    private function calculateNextPaymentDueDate(Carbon $date_payment): Carbon
+    private function calculateNextPaymentDueDate(Carbon $date_payment, int $nbre_schedule_day = 30): Carbon
     {
-        return $date_payment->addMonth();
+        return $date_payment->addDays($nbre_schedule_day);
     }
 
     private function nextOfflineUnlockCode(): string

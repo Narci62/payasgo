@@ -24,6 +24,7 @@ class ClientRessource extends JsonResource
                 "identity_document_type" => $this->identity_document_type,
                 "identity_document_number" => $this->identity_document_number,
                 "identity_document_path" => asset("storage/" . $this->identity_document_path),
+                "identifiant_client" => $this->reference,
                 "created_at" => $this->created_at,
             ],
             "token" => [
