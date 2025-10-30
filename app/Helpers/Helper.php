@@ -31,6 +31,14 @@ class Helper
     }
 
     /***
+     * Generate a unique public identifier with five numbers for customers
+     */
+    public static function generateUniquePublicIdentifier(): string
+    {
+        return sprintf('%05d', random_int(0, 99999));
+    }
+
+    /***
      * Format Date to yyy-mm-dd
      */
     public static function formatDate($date): string

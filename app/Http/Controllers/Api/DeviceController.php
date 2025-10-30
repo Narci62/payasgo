@@ -9,6 +9,7 @@ use App\Http\Resources\DeviceResource;
 use App\Models\Device;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Request;
 
 class DeviceController extends Controller
 {
@@ -39,7 +40,6 @@ class DeviceController extends Controller
 
         //we will check if the token exist and is valid (not used and not expired)
         $registration_token = app("App\Services\RegistrationTokenService")->validateToken($request->input('registration_token'));
-
 
         if (!$registration_token) {
             return response()->json(['message' => 'Invalid or expired token.'], 400);

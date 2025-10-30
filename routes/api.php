@@ -4,12 +4,15 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DeviceStatusController;
 use App\Http\Controllers\Api\FedapayWebhookController;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::post("/users/getuser", [ClientController::class, "getUserByDeviceToken"]);
 
 // admin
 Route::middleware('auth:admin-api')->prefix('admin')->group(function () {
