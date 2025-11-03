@@ -49,9 +49,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function canAccessPanel(Panel $panel): bool
-{
-    // ✅ Autoriser uniquement les super-admins
-    return $this->hasRole('super-admin');
-}
+    public function canAccessFilament(): bool
+    {
+        // ✅ Autoriser uniquement les super-admins
+        return $this->hasRole('super-admin');
+    }
 }
