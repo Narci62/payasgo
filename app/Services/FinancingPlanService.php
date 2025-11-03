@@ -12,7 +12,7 @@ class FinancingPlanService
 
     public function createFinancingPlan(array $data): Financing_plan
     {
-        $date_payment_due = $this->calculateNextPaymentDueDate(Carbon::now());
+        $date_payment_due = $this->calculateNextPaymentDueDate(Carbon::now(), $data['days_interval'] ?? 30);
         $grace_period_ends_at = $this->calculateGracePeriod($date_payment_due->copy());
         $remaining_balance = $data['total_price'] - $data['down_payment'];
         $next_offline_unlock_code = $this->nextOfflineUnlockCode();
@@ -25,6 +25,7 @@ class FinancingPlanService
             'remaining_balance' => $remaining_balance,
             'installment_amount' => $data['installment_amount'],
             'next_payment_due_date' => $date_payment_due,
+            'days_interval' => $data['days_interval'] ?? 30,
             'grace_period_ends_at' => $grace_period_ends_at,
             'next_offline_unlock_code' => $next_offline_unlock_code
         ]);
@@ -49,7 +50,7 @@ class FinancingPlanService
     {
         $plan = Financing_plan::where('registration_token_id', $token_id)
             ->first();
-            
+
         if (!$plan) {
             throw new \Exception("Financing plan not found");
         }
@@ -70,7 +71,13 @@ class FinancingPlanService
         $financingPlan->remaining_balance = $newbalance;
 
         // next payment date
-        $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::now());
+        $nbr_deviseur = (int) ($amountPaid / $financingPlan->installment_amount);
+        if ($nbr_deviseur >= 1) {
+            // calculate next payment due date
+            $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval * $nbr_deviseur);
+        }
+
+       // $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval);
 
         // next offline unlock code
         $financingPlan->next_offline_unlock_code = $this->nextOfflineUnlockCode();
@@ -101,17 +108,17 @@ class FinancingPlanService
     }
 
 
-    private function calculateGracePeriod(Carbon $date): Carbon
+    public function calculateGracePeriod(Carbon $date): Carbon
     {
         return $date->addDays(5);
     }
 
-    private function calculateNextPaymentDueDate(Carbon $date_payment, int $nbre_schedule_day = 30): Carbon
+    public function calculateNextPaymentDueDate(Carbon $date_payment, int $nbre_schedule_day = 30): Carbon
     {
         return $date_payment->addDays($nbre_schedule_day);
     }
 
-    private function nextOfflineUnlockCode(): string
+    public function nextOfflineUnlockCode(): string
     {
         do {
             $next_offline_unlock_code = Helper::offlineUnlockedToken();

@@ -38,6 +38,8 @@ class ClientController extends Controller
      */
     public function store(StoreClientRequest $request)
     {
+        return response()->json(['message' => 'Store method called']);
+        
         $validated = $request->validated();
 
        // dd($validated);
@@ -46,12 +48,12 @@ class ClientController extends Controller
 
             $client = $this->clientService->createClient($validated);
 
-            $registration_token = app("App\Services\RegistrationTokenService")->createToken(['client_id' => $client->id]);
+            // $registration_token = app("App\Services\RegistrationTokenService")->createToken(['client_id' => $client->id]);
 
-            $financing_plan = app("App\Services\FinancingPlanService")->createFinancingPlan([
-                'registration_token_id' => $registration_token->id,
-                ...$validated
-            ]);
+            // $financing_plan = app("App\Services\FinancingPlanService")->createFinancingPlan([
+            //     'registration_token_id' => $registration_token->id,
+            //     ...$validated
+            // ]);
 
 
             return $client;

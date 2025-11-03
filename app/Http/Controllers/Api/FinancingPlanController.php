@@ -2,12 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Financing_plan;
 use Illuminate\Http\Request;
+use App\Models\Financing_plan;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Services\FinancingPlanService;
+use App\Http\Resources\ClientRessource;
+use App\Http\Resources\FinancingPlanResource;
 
 class FinancingPlanController extends Controller
 {
+    public function __construct(private FinancingPlanService $financingPlanService)
+    {
+
+    }
     /**
      * Display a listing of the resource.
      */
@@ -29,7 +37,22 @@ class FinancingPlanController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validat([
+            // validation rules here
+        ]);
+
+        $financing_plan = DB::transaction(function() use ($validated) {
+
+          //  $registration_token = app("App\Services\RegistrationTokenService")->createToken(['client_id' => $validated['client_id']]);
+
+            $financing_plan = $this->financingPlanService->createFinancingPlan($validated);
+
+
+            return $financing_plan;
+        });
+
+
+        return (new FinancingPlanResource($financing_plan));
     }
 
     /**
