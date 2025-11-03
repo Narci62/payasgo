@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('identity_document_number')->nullable()->unique();
             $table->string('identity_document_file_path')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

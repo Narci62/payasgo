@@ -26,6 +26,7 @@ return new class extends Migration
             $table->timestamp('last_seen_at')->nullable();
             $table->text("notes")->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

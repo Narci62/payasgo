@@ -21,6 +21,7 @@ return new class extends Migration
             $table->timestamp("paid_at")->nullable()->comment("La date et l'heure auxquelles le paiement a été effectué.");
             $table->enum("status", ["pending", "completed", "failed"])->default("pending");
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

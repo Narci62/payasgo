@@ -79,5 +79,6 @@ class FedapayWebhookController extends Controller
 
         Log::info("Financing plan updated successfully for ID: " . $financingPlanId);
         return new FedapayWebhookResource($plan);
+        
     }
 }

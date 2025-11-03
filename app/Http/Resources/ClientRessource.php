@@ -14,7 +14,7 @@ class ClientRessource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['registrationTokens']);
+        //$this->loadMissing(['registrationTokens']);
         return [
             "message" => "Client crée avec success",
             "client" => [
@@ -26,11 +26,7 @@ class ClientRessource extends JsonResource
                 "identity_document_path" => asset("storage/" . $this->identity_document_path),
                 "identifiant_client" => $this->reference,
                 "created_at" => $this->created_at,
-            ],
-            "token" => [
-                "type" => "Bearer",
-                "value" => $this->registrationTokens->where("used_at", null)->first()->token,
-            ],
+            ]
         ];
     }
 }

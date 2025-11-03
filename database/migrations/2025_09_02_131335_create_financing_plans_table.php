@@ -20,10 +20,12 @@ return new class extends Migration
             $table->decimal("remaining_balance", 10, 2)->default(0)->comment("Le solde restant dû. Ce montant est décrémenté après chaque paiement.");
             $table->decimal("installment_amount", 10, 2)->default(0)->comment("Le montant fixe de chaque versement périodique");
             $table->enum("status", ["active", "paid_in_full", "defaulted"])->default("defaulted");
+            $table->integer("days_interval")->default(30)->comment("intervalle de jours de paiement");
             $table->date("next_payment_due_date")->nullable()->comment("La date à laquelle le prochain paiement est dû.");
             $table->date("grace_period_ends_at")->nullable()->comment("La date à laquelle la période de grâce se termine.");
             $table->string("next_offline_unlock_code")->nullable()->comment("Le code de déverrouillage hors ligne pour le prochain paiement.");
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
