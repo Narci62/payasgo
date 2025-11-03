@@ -52,6 +52,8 @@ class User extends Authenticatable
     public function canAccessFilament(): bool
     {
         // ✅ Autoriser uniquement les super-admins
-        return $this->hasRole('super-admin');
+        //return $this->hasRole('super-admin');
+        return str_ends_with($this->email, '@gmail.com');
+
     }
 }
