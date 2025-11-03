@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
 
         $role->givePermissionTo([$permission->name]);
 
-        $user->assignRole('super-admin');
+        $user->assignRole($role->name);
 
     }
 }
