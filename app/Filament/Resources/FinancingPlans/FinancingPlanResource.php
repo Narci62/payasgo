@@ -102,7 +102,7 @@ class FinancingPlanResource extends Resource
                     ClientResource::getUrl('edit', ['record' => $record->registrationToken->client->id]))
                 ->default('N/A'),
 
-                TextColumn::make('device.name')
+                TextColumn::make('device.device_name')
                     ->label('Appareil')
                     ->copyable()
                     ->sortable()

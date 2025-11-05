@@ -18,8 +18,10 @@ return new class extends Migration
             $table->foreignId('client_id')->constrained()->onDelete('cascade');
             $table->string('public_id')->unique();
             $table->string('android_version')->nullable();
-            $table->string('name')->nullable();
-            $table->string('serial_number')->unique();
+            $table->string('device_name');
+            $table->string('device_id')->unique();
+            $table->string('device_model')->nullable();
+            $table->string('device_brand')->nullable();
             $table->string('imei')->nullable();
             $table->text('fcm_token')->nullable();
             $table->enum('status', ["pending_registration","active","payment_due","locked","disabled"])->default("pending_registration");
