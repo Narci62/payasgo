@@ -85,10 +85,13 @@ class FinancingPlanService
         // check if financing plan is paid in full
         if ($newbalance == 0) {
             $financingPlan->status = "paid_in_full";
-            // other notification push to unlock phone forever
+            // save uninstall code
+            do {
+                $financingPlan->uninstall_code = Helper::generateRandomString();
+            } while (Financing_plan::where('uninstall_code', $financingPlan->uninstall_code)->exists());
         }
 
-        if($financingPlan->installment_amount > $newbalance) {
+        if( $newbalance != 0 && $financingPlan->installment_amount > $newbalance) {
             $financingPlan->installment_amount = $newbalance;
         }
 
