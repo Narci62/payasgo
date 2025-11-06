@@ -2,7 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Client;
 use Filament\Widgets\Widget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ClientStatsOverview extends Widget
 {
