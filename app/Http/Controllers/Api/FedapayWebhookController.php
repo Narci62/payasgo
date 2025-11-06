@@ -82,12 +82,12 @@ class FedapayWebhookController extends Controller
      */
     public function webhook(Request $request)
     {
+        dd($request);
         $event = Webhook::constructEvent(
             $request->getContent(),
             $request->header('X-FEDAPAY-SIGNATURE'),
             config('services.fedapay.webhook_secret')
         );
-        dd($event);
 
         $payload = $request->getContent();
         $signature = $request->header('X-Fedapay-Signature');
