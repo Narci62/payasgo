@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Services\FinancingPlanService;
 use App\Http\Resources\FedapayWebhookResource;
 use App\Models\Client;
+use FedaPay\Webhook;
 
 class FedapayWebhookController extends Controller
 {
@@ -57,7 +58,6 @@ class FedapayWebhookController extends Controller
             return back()->withErrors(['amount' => $check_eli['message']])->withInput();
         }
 
-        // check eligibility before creating transaction
 
 
         $transaction = Transaction::create([
@@ -68,6 +68,9 @@ class FedapayWebhookController extends Controller
             'metadata' => [
                 'reference' => $validated['reference'],
                 'financing_plan_id' => $financing_plan->id,
+                "nbr_interval" => $check_eli['nbr_interval'],
+                "total_normal" => $check_eli['total_normal'],
+                "penalite" => $check_eli['penalite'],
             ],
         ]);
 
@@ -79,13 +82,20 @@ class FedapayWebhookController extends Controller
      */
     public function webhook(Request $request)
     {
+        $event = Webhook::constructEvent(
+            $request->getContent(),
+            $request->header('X-FEDAPAY-SIGNATURE'),
+            config('services.fedapay.webhook_secret')
+        );
+        dd($event);
+
         $payload = $request->getContent();
         $signature = $request->header('X-Fedapay-Signature');
 
-        $expected = hash_hmac('sha256', $payload, config('services.fedapay.secret_key'));
-        if (!hash_equals($expected, $signature)) {
-            return response('Invalid signature', 403);
-        }
+        // $expected = hash_hmac('sha256', $payload, config('services.fedapay.webhook_signature_key'));
+        // if (!hash_equals($expected, $signature)) {
+        //     return response('Invalid signature', 403);
+        // }
 
 
         // log the payload for debugging
@@ -103,15 +113,18 @@ class FedapayWebhookController extends Controller
             $metadata = $transaction['metadata'] ?? [];
             $reference = $metadata['reference'] ?? null;
             $financing_plan = $metadata['financing_plan_id'] ?? null;
+            $nbr_intervall = $metadata["nbr_interval"] ?? null;
+            $total_normal = $metadata["total_normal"] ?? null;
+            $penalite = $metadata["penalite"] ?? null;
 
-            if ($financing_plan) {
+            if ($financing_plan && $reference) {
                 // mise à jour de ma base de données
                 $record = Financing_plan::find($financing_plan);
                 if (!$record) {
                     Log::error("❌ Plan de financement non trouvé pour l'ID : $financing_plan");
                     return response('Financing plan not found', 404);
                 }
-                $payments = $this->financingPlanService->savePayment($record, $data['amount'], 'manual',  $fedapayId ?? uniqid("txn-"));
+                $payments = $this->financingPlanService->savePayment($record, $total_normal, 'manual',  $fedapayId ?? uniqid("txn-"));
 
                 Log::info("✅ Paiement confirmé pour $reference");
             }
