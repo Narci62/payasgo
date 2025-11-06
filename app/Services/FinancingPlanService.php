@@ -104,7 +104,7 @@ class FinancingPlanService
         else{
             $nbr_intervall = (int) ($total_normal / $payout);
 
-            dd($nbr_intervall);
+          //  dd($nbr_intervall);
         }
 
         return [

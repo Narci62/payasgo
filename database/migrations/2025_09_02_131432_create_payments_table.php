@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId("financing_plan_id")->constrained()->onDelete("cascade");
             $table->decimal("amount", 10, 2)->comment("Le montant du paiement.");
             $table->string('currency')->default("XOF");
-            $table->enum("method", ["mobile_money", "manual", "cash"])->default("mobile_money");
+            $table->enum("method", ["mobile_money", "manual", "cash", "fedapay"])->default("mobile_money");
             $table->string("transaction_id")->comment("L'ID de la transaction pour le suivi.");
             $table->timestamp("paid_at")->nullable()->comment("La date et l'heure auxquelles le paiement a été effectué.");
             $table->enum("status", ["pending", "completed", "failed"])->default("pending");
