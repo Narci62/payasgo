@@ -2,11 +2,13 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Actions\BulkActionGroup;
+use App\Models\Client;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\BulkActionGroup;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class LatestClients extends TableWidget
 {
@@ -17,11 +19,11 @@ class LatestClients extends TableWidget
                 Client::query()->latest()->limit(5) // Afficher les 5 derniers
             )
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('full_name')
                     ->label('Nom'),
-                Tables\Columns\TextColumn::make('reference')
+                TextColumn::make('reference')
                     ->label('Réference'),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Date d\'ajout')
                     ->dateTime('d/m/Y H:i'),
             ]);

@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Models\Device;
 use App\Models\Financing_plan;
 use Carbon\Carbon;
+use Exception;
 
 class FinancingPlanService
 {
@@ -63,6 +64,60 @@ class FinancingPlanService
         return $plan;
     }
 
+    public function checkEligibilityAndReturnNewAmount(Financing_plan $financing_plan, $amount)
+    {
+        /**
+         * On va verifier si le montant envoyé par l'utilisateur est supérieur ou égal au montant du versement stocké dans financing plan
+         * On recupere la date d'aujourd'hui, la date du prochain paiement et l'intervalle de paiement stocker dans financing plan
+         * On divise la difference du nombre de jours entre les deux dates par l'intervalle de paiement et on prend la partie entier
+         * Si le resultat de la division est supérieur à 1, on multipliera par une penalité de 5%(du montant de versement par date de paiement)
+         * Ensuite on multiplie le resultat par le montant de versement par date de paiement
+         * Si ce montant est inferieur au montant $amount, on rejette le paiement sinon on accepte
+         *
+         */
+        $penalite = 0;
+        $nbr_intervall = 0;
+        $total_normal = $amount;
+        $payout = $total_all = $financing_plan->installment_amount;
+        if ($payout > $amount) {
+            return ["message" => "montant insuffisant", "status" => false];
+        }
+
+        $now = Carbon::now();
+        $next_pa = Carbon::parse($financing_plan->next_payment_due_date);
+        $intervall_days = $financing_plan->days_interval;
+
+        if ($now->greaterThan($next_pa)) {
+            $diff_days = $now->diffInDays($next_pa);
+            $nbr_intervall = (int) ($diff_days / $intervall_days);
+            $total_normal = $payout * $nbr_intervall;
+
+
+            if ($nbr_intervall >= 1) {
+                $penalite = ($payout * 0.5) * $nbr_intervall;
+                $total_all = $penalite + $total_normal;
+                if ($amount < $total_all) {
+                    return ["message" => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.", "status" => false];
+                }
+            }
+        }
+        else{
+            $nbr_intervall = (int) ($total_normal / $payout);
+
+            dd($nbr_intervall);
+        }
+
+        return [
+            "nbr_interval" => $nbr_intervall,
+            "status" => "ok",
+            "total_normal" => $total_normal,
+            "penalite" => $penalite
+        ];
+
+
+    }
+
+
     public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method = 'fedapay', $transactionId = null): Financing_plan
     {
 
@@ -77,7 +132,7 @@ class FinancingPlanService
             $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval * $nbr_deviseur);
         }
 
-       // $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval);
+        // $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval);
 
         // next offline unlock code
         $financingPlan->next_offline_unlock_code = $this->nextOfflineUnlockCode();
@@ -91,14 +146,14 @@ class FinancingPlanService
             } while (Financing_plan::where('uninstall_code', $financingPlan->uninstall_code)->exists());
         }
 
-        if( $newbalance != 0 && $financingPlan->installment_amount > $newbalance) {
+        if ($newbalance != 0 && $financingPlan->installment_amount > $newbalance) {
             $financingPlan->installment_amount = $newbalance;
         }
 
         $financingPlan->save();
 
         // save payment histories
-       (new PaymentService())->store([
+        (new PaymentService())->store([
             'financing_plan_id' => $financingPlan->id,
             'amount' => $amountPaid,
             'method' => $method,

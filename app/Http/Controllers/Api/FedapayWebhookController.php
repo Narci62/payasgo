@@ -2,17 +2,124 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\FedapayWebhookResource;
-use App\Models\Financing_plan;
-use App\Services\FinancingPlanService;
 use FedaPay\FedaPay;
+use FedaPay\Transaction;
 use Illuminate\Http\Request;
+use App\Models\Financing_plan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Services\FinancingPlanService;
+use App\Http\Resources\FedapayWebhookResource;
+use App\Models\Client;
 
 class FedapayWebhookController extends Controller
 {
+    protected $financingPlanService;
+    public function __construct()
+    {
+        FedaPay::setApiKey(config('services.fedapay.secret_key'));
+        FedaPay::setEnvironment(config('services.fedapay.mode')); // sandbox ou live
+
+        $this->financingPlanService = new FinancingPlanService();
+    }
+
+    public function showForm()
+    {
+        return view('payment.form');
+    }
+
+    public function processPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'reference' => 'required|string',
+            'amount' => 'required|numeric',
+        ]);
+
+        $client = Client::where('reference', $validated['reference'])->first();
+        if (!$client) {
+            return back()->withErrors(['reference' => 'Client non trouvé pour cette référence.'])->withInput();
+        }
+
+        $device = $client->devices()->latest()->first();
+        if (!$device) {
+            return back()->withErrors(['device' => 'Aucun appareil trouvé pour ce client.'])->withInput();
+        }
+
+        $financing_plan = Financing_plan::where('device_id', $device->id)->whereNot('status','paid_in_full')->first();
+        if (!$financing_plan) {
+            return back()->withErrors(['financing_plan' => 'Aucun plan de financement trouvé pour ce client.'])->withInput();
+        }
+
+        $check_eli = $this->financingPlanService->checkEligibilityAndReturnNewAmount($financing_plan, $validated['amount']);
+
+        if($check_eli['status'] === false){
+            return back()->withErrors(['amount' => $check_eli['message']])->withInput();
+        }
+
+        // check eligibility before creating transaction
+
+
+        $transaction = Transaction::create([
+            'description' => 'Paiement client ' . $validated['reference'],
+            'amount' => $validated['amount'],
+            'currency' => ['iso' => 'XOF'],
+            'callback_url' => route('fedapay.webhook'),
+            'metadata' => [
+                'reference' => $validated['reference'],
+                'financing_plan_id' => $financing_plan->id,
+            ],
+        ]);
+
+        return redirect($transaction->generateToken()->url);
+    }
+
+    /**
+     * 🔹 Webhook FedaPay : reçoit la confirmation automatique
+     */
+    public function webhook(Request $request)
+    {
+        $payload = $request->getContent();
+        $signature = $request->header('X-Fedapay-Signature');
+
+        $expected = hash_hmac('sha256', $payload, config('services.fedapay.secret_key'));
+        if (!hash_equals($expected, $signature)) {
+            return response('Invalid signature', 403);
+        }
+
+
+        // log the payload for debugging
+        Log::info('📬 Webhook reçu : ' . $payload);
+
+        $data = json_decode($payload, true);
+        if (!$data || empty($data['event'])) {
+            return response('Invalid payload', 400);
+        }
+
+        if ($data['event']['name'] === 'transaction.approved') {
+
+            $transaction = $data['event']['object'] ?? [];
+            $fedapayId = $transaction['id'] ?? null;
+            $metadata = $transaction['metadata'] ?? [];
+            $reference = $metadata['reference'] ?? null;
+            $financing_plan = $metadata['financing_plan_id'] ?? null;
+
+            if ($financing_plan) {
+                // mise à jour de ma base de données
+                $record = Financing_plan::find($financing_plan);
+                if (!$record) {
+                    Log::error("❌ Plan de financement non trouvé pour l'ID : $financing_plan");
+                    return response('Financing plan not found', 404);
+                }
+                $payments = $this->financingPlanService->savePayment($record, $data['amount'], 'manual',  $fedapayId ?? uniqid("txn-"));
+
+                Log::info("✅ Paiement confirmé pour $reference");
+            }
+        }
+
+        return response('OK', 200);
+    }
+
     public function handleWebhook(Request $request)
     {
         // Log the incoming webhook payload for debugging
@@ -70,7 +177,7 @@ class FedapayWebhookController extends Controller
         try {
             $plan = DB::transaction(function () use ($financingPlan, $payload) {
 
-                return $financingPlan->savePayment($financingPlan,$payload['object']['amount'], 'fedapay', $payload['object']['id']);
+                return $financingPlan->savePayment($financingPlan, $payload['object']['amount'], 'fedapay', $payload['object']['id']);
             });
         } catch (\Throwable $e) {
             Log::critical("Webhook Fedapay : Échec du traitement BDD. Erreur: " . $e->getMessage());
@@ -79,6 +186,5 @@ class FedapayWebhookController extends Controller
 
         Log::info("Financing plan updated successfully for ID: " . $financingPlanId);
         return new FedapayWebhookResource($plan);
-        
     }
 }
