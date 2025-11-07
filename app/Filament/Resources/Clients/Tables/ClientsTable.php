@@ -23,7 +23,7 @@ class ClientsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                  //  DeleteBulkAction::make(),
                 ]),
             ]);
     }

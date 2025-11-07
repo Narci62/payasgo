@@ -78,7 +78,7 @@ class FedapayWebhookController extends Controller
         // save payment with status pending
         $financing_plan->payments()->create([
             'amount' => $validated['amount'],
-            'method' => 'manual',
+            'method' => 'fedapay',
             'transaction_id' => $transaction->reference,
             'status' => 'pending',
             'paid_at' => null

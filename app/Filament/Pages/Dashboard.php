@@ -19,7 +19,7 @@ class Dashboard extends BaseDashboard
     protected static ?string $title = "Tableau de Bord";
 
     // Pour masquer le dashboard par défaut et utiliser le nôtre
-    protected static bool $shouldRegisterNavigation = true;
+    protected static bool $shouldRegisterNavigation = false;
 
     public function getColumns(): int | array
     {

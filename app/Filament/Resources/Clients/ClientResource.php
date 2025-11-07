@@ -175,16 +175,16 @@ class ClientResource extends Resource
                     EditAction::make()
                         ->label('Modifier')
                         ->icon('heroicon-o-pencil'),
-                    DeleteAction::make()
-                        ->label('Supprimer')
-                        ->icon('heroicon-o-trash'),
+                    // DeleteAction::make()
+                    //     ->label('Supprimer')
+                    //     ->icon('heroicon-o-trash'),
                 ]),
             ])
 
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label('Supprimer sélection'),
+                    // DeleteBulkAction::make()
+                    //     ->label('Supprimer sélection'),
                 ]),
             ]);
     }
