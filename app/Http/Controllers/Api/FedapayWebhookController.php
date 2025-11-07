@@ -151,7 +151,7 @@ class FedapayWebhookController extends Controller
                 return response('Financing plan not found', 404);
             }
 
-            $payments = $this->financingPlanService->savePayment($record, $transaction->amount, 'manual', $payment->transaction_id);
+            $payments = $this->financingPlanService->savePayment($record, $transaction->amount, 'fedapay', $payment->transaction_id);
 
             Log::info("✅ Paiement confirmé pour $payment->transaction_id");
         } else {
