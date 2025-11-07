@@ -19,8 +19,8 @@ class FedapayWebhookController extends Controller
     protected $financingPlanService;
     public function __construct()
     {
-        FedaPay::setApiKey(config('services.fedapay.secret_key'));
-        FedaPay::setEnvironment(config('services.fedapay.mode')); // sandbox ou live
+        FedaPay::setApiKey(config('services.fedapayT.public_key'));
+        FedaPay::setEnvironment(config('services.fedapayT.mode')); // sandbox ou live
 
         $this->financingPlanService = new FinancingPlanService();
     }
@@ -82,12 +82,12 @@ class FedapayWebhookController extends Controller
      */
     public function webhook(Request $request)
     {
-        dd($request);
         $event = Webhook::constructEvent(
             $request->getContent(),
             $request->header('X-FEDAPAY-SIGNATURE'),
-            config('services.fedapay.webhook_secret')
+            config('services.fedapayT.webhook_signature_key')
         );
+        dd($event);
 
         $payload = $request->getContent();
         $signature = $request->header('X-Fedapay-Signature');
