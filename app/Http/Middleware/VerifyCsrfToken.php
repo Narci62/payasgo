@@ -13,6 +13,7 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
        // 'api/*', // Exclure toutes les routes API
-        'api/webhooks/fedapay', // Webhook spécifique
+     //   'api/webhooks/fedapay', // Webhook spécifique
+        'api/webhook', // Webhook spécifique
     ];
 }

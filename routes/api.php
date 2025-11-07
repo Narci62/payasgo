@@ -38,3 +38,4 @@ Route::middleware('auth:device-api', 'device.auth')->prefix('device')->group(fun
 
 // payment by fedepay
 Route::post("/webhooks/fedapay", [FedapayWebhookController::class, "handleWebhook"]);
+Route::post('/webhook', [FedapayWebhookController::class, 'webhook'])->name('fedapay.webhook');

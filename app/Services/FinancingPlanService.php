@@ -118,7 +118,7 @@ class FinancingPlanService
     }
 
 
-    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method = 'fedapay', $transactionId = null): Financing_plan
+    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method = 'fedapay', $transactionId): Financing_plan
     {
 
         $newbalance = $financingPlan->remaining_balance - $amountPaid;

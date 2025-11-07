@@ -7,7 +7,7 @@ class PaymentService
 {
     public function store(array $data)
     {
-        return Payment::create($data);
+        return Payment::updateOrCreate(['transaction_id' => $data['transaction_id']], $data);
     }
 
     public function findByTransactionId($transactionId)
