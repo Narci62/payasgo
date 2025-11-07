@@ -26,9 +26,9 @@ class FinancingPlansTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
+                    //DeleteBulkAction::make(),
+                   // ForceDeleteBulkAction::make(),
+                   // RestoreBulkAction::make(),
                 ]),
             ]);
     }
