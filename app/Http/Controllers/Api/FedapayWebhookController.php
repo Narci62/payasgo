@@ -19,7 +19,7 @@ class FedapayWebhookController extends Controller
     protected $financingPlanService;
     public function __construct()
     {
-        FedaPay::setApiKey(config('services.fedapayT.public_key'));
+        FedaPay::setApiKey(config('services.fedapayT.secret_key'));
         FedaPay::setEnvironment(config('services.fedapayT.mode')); // sandbox ou live
 
         $this->financingPlanService = new FinancingPlanService();
