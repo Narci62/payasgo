@@ -135,14 +135,7 @@ class FinancingPlanService
         // Si on est en retard
         if ($now->greaterThan($next_payment_due)) {
             // Nombre de jours de retard
-            $diff_days = $now->diffInDays($next_payment_due);
-
-            dd([
-                'now' => $now,
-                'next_payment_due' => $next_payment_due,
-                'diff_days' => $diff_days,
-                'nbr_echeances_manquees' => (int) ($diff_days / $intervall_days)
-            ]);
+            $diff_days = abs($now->diffInDays($next_payment_due));
 
             // Nombre d'échéances manquées (périodes complètes)
             $nbr_echeances_manquees = (int) ($diff_days / $intervall_days);
