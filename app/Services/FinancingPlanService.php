@@ -64,57 +64,121 @@ class FinancingPlanService
         return $plan;
     }
 
+    // public function checkEligibilityAndReturnNewAmount(Financing_plan $financing_plan, $amount)
+    // {
+    //     /**
+    //      * On va verifier si le montant envoyé par l'utilisateur est supérieur ou égal au montant du versement stocké dans financing plan
+    //      * On recupere la date d'aujourd'hui, la date du prochain paiement et l'intervalle de paiement stocker dans financing plan
+    //      * On divise la difference du nombre de jours entre les deux dates par l'intervalle de paiement et on prend la partie entier
+    //      * Si le resultat de la division est supérieur à 1, on multipliera par une penalité de 50%(du montant de versement par date de paiement)
+    //      * Ensuite on multiplie le resultat par le montant de versement par date de paiement
+    //      * Si ce montant est inferieur au montant $amount, on rejette le paiement sinon on accepte
+    //      *
+    //      */
+    //     $penalite = 0;
+    //     $nbr_intervall = 0;
+    //     $total_normal = $amount;
+    //     $payout = $total_all = $financing_plan->installment_amount;
+    //     if ($payout > $amount) {
+    //         return ["message" => "montant insuffisant", "status" => false];
+    //     }
+
+    //     $now = Carbon::now();
+    //     $next_pa = Carbon::parse($financing_plan->next_payment_due_date);
+    //     $intervall_days = $financing_plan->days_interval;
+
+    //     if ($now->greaterThan($next_pa)) {
+    //         $diff_days = $now->diffInDays($next_pa);
+    //         $nbr_intervall = (int) ($diff_days / $intervall_days);
+    //         $total_normal = $payout * $nbr_intervall;
+
+
+    //         if ($nbr_intervall >= 1) {
+    //             $penalite = ($payout * 0.5) * $nbr_intervall;
+    //             $total_all = $penalite + $total_normal;
+    //             if ($amount < $total_all) {
+    //                 return ["message" => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.", "status" => false];
+    //             }
+    //         }
+    //     }
+    //     else{
+    //         $nbr_intervall = (int) ($total_normal / $payout);
+
+    //       //  dd($nbr_intervall);
+    //     }
+
+    //     return [
+    //         "nbr_interval" => $nbr_intervall,
+    //         "status" => "ok",
+    //         "total_normal" => $total_normal,
+    //         "penalite" => $penalite
+    //     ];
+
+
+    // }
+
     public function checkEligibilityAndReturnNewAmount(Financing_plan $financing_plan, $amount)
     {
-        /**
-         * On va verifier si le montant envoyé par l'utilisateur est supérieur ou égal au montant du versement stocké dans financing plan
-         * On recupere la date d'aujourd'hui, la date du prochain paiement et l'intervalle de paiement stocker dans financing plan
-         * On divise la difference du nombre de jours entre les deux dates par l'intervalle de paiement et on prend la partie entier
-         * Si le resultat de la division est supérieur à 1, on multipliera par une penalité de 5%(du montant de versement par date de paiement)
-         * Ensuite on multiplie le resultat par le montant de versement par date de paiement
-         * Si ce montant est inferieur au montant $amount, on rejette le paiement sinon on accepte
-         *
-         */
         $penalite = 0;
         $nbr_intervall = 0;
-        $total_normal = $amount;
-        $payout = $total_all = $financing_plan->installment_amount;
+        $payout = $financing_plan->installment_amount;
+
+        // Vérification du montant minimum
         if ($payout > $amount) {
-            return ["message" => "montant insuffisant", "status" => false];
+            return ["message" => "Montant insuffisant", "status" => false];
         }
 
         $now = Carbon::now();
-        $next_pa = Carbon::parse($financing_plan->next_payment_due_date);
+        $next_payment_due = Carbon::parse($financing_plan->next_payment_due_date);
         $intervall_days = $financing_plan->days_interval;
 
-        if ($now->greaterThan($next_pa)) {
-            $diff_days = $now->diffInDays($next_pa);
-            $nbr_intervall = (int) ($diff_days / $intervall_days);
-            $total_normal = $payout * $nbr_intervall;
+        // Si on est en retard
+        if ($now->greaterThan($next_payment_due)) {
+            // Nombre de jours de retard
+            $diff_days = $now->diffInDays($next_payment_due);
 
-
-            if ($nbr_intervall >= 1) {
-                $penalite = ($payout * 0.5) * $nbr_intervall;
-                $total_all = $penalite + $total_normal;
-                if ($amount < $total_all) {
-                    return ["message" => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.", "status" => false];
-                }
+            // Nombre d'échéances manquées (périodes complètes)
+            $nbr_echeances_manquees = (int) ($diff_days / $intervall_days);
+            if($nbr_echeances_manquees < 1){
+                $nbr_echeances_manquees =1;
             }
-        }
-        else{
-            $nbr_intervall = (int) ($total_normal / $payout);
 
-          //  dd($nbr_intervall);
+            // Si au moins 1 échéance manquée, il y a pénalité
+            if ($nbr_echeances_manquees >= 1) {
+                $total_normal = $payout * $nbr_echeances_manquees;
+                $penalite = ($payout * 0.5) * $nbr_echeances_manquees;
+                $total_all = $total_normal + $penalite;
+
+                if ($amount < $total_all) {
+                    return [
+                        "message" => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.",
+                        "status" => false
+                    ];
+                }
+
+                // Le montant couvre les pénalités, calculer combien d'échéances il peut payer
+                // On soustrait d'abord les pénalités
+                $montant_restant = $amount - $penalite;
+                $nbr_intervall = (int) ($montant_restant / $payout);
+                $total_normal = $payout * $nbr_intervall;
+            } else {
+                // En retard mais moins d'une période complète
+                // Pas de pénalité encore, on calcule normalement
+                $nbr_intervall = (int) ($amount / $payout);
+                $total_normal = $payout * $nbr_intervall;
+            }
+        } else {
+            // Paiement à temps ou en avance
+            $nbr_intervall = (int) ($amount / $payout);
+            $total_normal = $payout * $nbr_intervall;
         }
 
         return [
             "nbr_interval" => $nbr_intervall,
-            "status" => "ok",
+            "status" => true,
             "total_normal" => $total_normal,
             "penalite" => $penalite
         ];
-
-
     }
 
 
