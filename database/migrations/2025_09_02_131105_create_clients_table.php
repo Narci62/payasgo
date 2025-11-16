@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->string('reference')->unique();
             $table->text("address")->nullable();
-            $table->enum('identity_document_type', ['passport', 'national_id', 'driver_license'])->default('national_id');
+            $table->enum('identity_document_type', ['passport', 'national_id', 'driver_license','cip'])->default('national_id');
             $table->string('identity_document_number')->nullable()->unique();
             $table->string('identity_document_file_path')->nullable();
             $table->timestamps();
