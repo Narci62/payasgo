@@ -84,6 +84,14 @@ class ClientResource extends Resource
                 Section::make('Plus de renseignement')
                     ->description('Renseignement administratifs')
                     ->schema([
+                        TextInput::make('npi')
+                            ->label('Numéro NPI')
+                            ->required(),
+
+                        TextInput::make('ifu')
+                            ->label("Numéro IFU")
+                            ->nullable(),
+
                         Select::make('identity_document_type')
                             ->label('Type de pièce')
                             ->options([

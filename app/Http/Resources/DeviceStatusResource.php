@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -41,7 +42,7 @@ class DeviceStatusResource extends JsonResource
      */
     protected function formatActiveResponse($financingPlan): array
     {
-        $expiresAt = $financingPlan?->next_payment_due_date;
+        $expiresAt = Carbon::parse($financingPlan?->next_payment_due_date)->format('d-m-Y H:i:s');
         $gracePeriodEndsAt = $financingPlan?->grace_period_ends_at;
 
         return [
