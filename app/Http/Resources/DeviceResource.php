@@ -37,11 +37,10 @@ class DeviceResource extends JsonResource
                 'check_interval_minutes' => 60,
             ],
             'user' => [
-                'reference' => $this->client->reference,
-                'client_name' => $this->client->full_name,
-                'payment_date' => Carbon::parse($this->client?->created_at)->format('d-m-Y'),
+                'client_name' => $this->client?->full_name,
+                'payment_date' => Carbon::parse($this->created_at)->format('d-m-Y'),
                 'total_amount' => $this->financingPlan?->total_price,
-                'phone_name' => $this->client->phone_number,
+                'phone_name' => $this->device_name,
                 'admin_note' => $this->notes
             ]
         ];
