@@ -97,7 +97,8 @@ class ClientResource extends Resource
                             ->options([
                                 'national_id' => 'Carte Nationale d’Identité',
                                 'passport' => 'Passeport',
-                                'driver_licence' => 'Permis de conduire'
+                                'driver_licence' => 'Permis de conduire',
+                                'cip' => "CIP"
                             ])
                             ->searchable()
                             ->required(),
