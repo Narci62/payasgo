@@ -29,9 +29,9 @@ class DeviceStatusResource extends JsonResource
         }
 
         // Vérifier si la date du période de grâce est dépassée
-        if (now()->greaterThan($financingPlan->grace_period_ends_at)) {
-            return $this->formatPaymentDueGracePeriodResponse($financingPlan);
-        }
+        // if (now()->greaterThan($financingPlan->grace_period_ends_at)) {
+        //     return $this->formatPaymentDueGracePeriodResponse($financingPlan);
+        // }
 
         // Si aucune des conditions ci-dessus n'est remplie, l'appareil est actif.
         return $this->formatActiveResponse($financingPlan);
