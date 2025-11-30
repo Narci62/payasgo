@@ -23,14 +23,13 @@ class Dashboard extends BaseDashboard
 
     public function getColumns(): int | array
     {
-        return 2; // Par exemple, pour un layout en 2 colonnes
+        return 1; // Par exemple, pour un layout en 2 colonnes
     }
 
     public function getWidgets(): array
     {
         return [
             AccountWidget::class,
-            FilamentInfoWidget::class,
             ClientStatsOverview::class,
             LatestClients::class,
         ];

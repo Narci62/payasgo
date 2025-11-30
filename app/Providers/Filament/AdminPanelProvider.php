@@ -6,6 +6,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Pages\Dashboard;
 use Filament\Support\Colors\Color;
+use App\Filament\Pages\SalesReport;
 use Filament\Widgets\AccountWidget;
 use App\Filament\Widgets\LatestClients;
 use Filament\Widgets\FilamentInfoWidget;
@@ -37,13 +38,13 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 \App\Filament\Pages\Dashboard::class,
+                SalesReport::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
                 ClientStatsOverview::class,
-            LatestClients::class,
+                LatestClients::class,
             ])
             ->middleware([
                 EncryptCookies::class,

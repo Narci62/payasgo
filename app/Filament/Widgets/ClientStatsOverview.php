@@ -3,31 +3,40 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Client;
+use App\Models\Financing_plan;
+use Carbon\Carbon;
 use Filament\Tables\Table;
 use Filament\Widgets\Widget;
 use Filament\Widgets\TableWidget;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class ClientStatsOverview extends TableWidget
+class ClientStatsOverview extends StatsOverviewWidget
 {
-    // string $view = 'filament.widgets.client-stats-overview';
+    //public string $view = 'filament.widgets.client-stats-overview';
 
 
-    public function table(Table $table): Table
+
+    // retourn stats overview
+    //protected static ?string $heading = 'Statistiques des Clients';
+    protected function getStats(): array
     {
-        return $table
-            ->query(
-                Client::query()->latest()->limit(5) // Afficher les 5 derniers
-            )
-            ->columns([
-                TextColumn::make('full_name')
-                    ->label('Nom'),
-                TextColumn::make('reference')
-                    ->label('Réference'),
-                TextColumn::make('created_at')
-                    ->label('Date d\'ajout')
-                    ->dateTime('d/m/Y H:i'),
-            ]);
+        // record count
+        $totalClients = Client::count();
+        $totalContracts = Financing_plan::count();
+        $activeContracts = Financing_plan::where('status', 'active')->count();
+        $inactiveContracts = Financing_plan::where('next_payment_due_date', '<', now())->count();;
+        $paidInFullContracts = Financing_plan::where('status', 'paid_in_full')->count();
+
+        return [
+            Stat::make('Total Clients', $totalClients),
+            Stat::make('Total Contrats', $totalContracts),
+            Stat::make('Contrat Actifs', $activeContracts),
+            Stat::make('Retard de paiement', $inactiveContracts),
+            Stat::make('Contrat Soldé', $paidInFullContracts),
+        ];
     }
+
+
 }

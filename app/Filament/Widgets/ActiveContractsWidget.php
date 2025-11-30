@@ -1,114 +1,43 @@
 <?php
 
-namespace App\Filament\Resources\FinancingPlans;
+namespace App\Filament\Widgets;
 
-use BackedEnum;
-use App\Models\Client;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
-use Filament\Schemas\Schema;
-use App\Models\FinancingPlan;
 use App\Models\Financing_plan;
 use Filament\Actions\EditAction;
-use Filament\Resources\Resource;
 use Filament\Actions\ActionGroup;
+use Filament\Widgets\TableWidget;
 use Filament\Actions\DeleteAction;
 use Filament\Tables\Filters\Filter;
-use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Http;
 use Filament\Actions\BulkActionGroup;
-use Filament\Forms\Components\Select;
 use App\Services\FinancingPlanService;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\Clients\ClientResource;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Resources\FinancingPlans\Pages\EditFinancingPlan;
-use App\Filament\Resources\FinancingPlans\Pages\ListFinancingPlans;
-use App\Filament\Resources\FinancingPlans\Pages\CreateFinancingPlan;
-use App\Filament\Resources\FinancingPlans\Schemas\FinancingPlanForm;
-use App\Filament\Resources\FinancingPlans\Tables\FinancingPlansTable;
 
-class FinancingPlanResource extends Resource
+class ActiveContractsWidget extends TableWidget
 {
-    protected static ?string $model = Financing_plan::class;
+        protected static ?string $heading = 'Contrats en cours';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static ?string $recordTitleAttribute = 'status';
-
-    // custom name for navigation
-    protected static ?string $navigationLabel = 'Plans de financement';
-
-
-    // change breadcrumb title
-    protected static ?string $breadcrumbTitle = 'Plans de financement';
-    
-
-    public static function form(Schema $schema): Schema
-    {
-        return $schema
-            ->schema([
-                Section::make('Nouvelle Achat')
-                    ->description('Informations générales sur l\'achat.')
-                    ->schema([
-                        Select::make('client_id')
-                            ->label('Client')
-                            ->options(
-                                fn() => \App\Models\Client::all()->pluck('full_name', 'id')
-                            )
-                            ->searchable()
-                            ->required(),
-
-                        TextInput::make('total_price')
-                            ->label('Prix total')
-                            ->numeric()
-                            ->prefix('CFA')
-                            ->required(),
-
-                        TextInput::make('down_payment')
-                            ->label('Acompte')
-                            ->numeric()
-                            ->prefix('CFA')
-                            ->required(),
-
-                        TextInput::make('installment_amount')
-                            ->label('Mensualité')
-                            ->numeric()
-                            ->prefix('CFA')
-                            ->required(),
-
-                        TextInput::make('days_interval')
-                            ->label('Intervalle de jours entre les paiements')
-                            ->integer()
-                            ->required(),
-
-                    ])->columns(2), // 2 colonnes pour cette section
-
-            ]);
-    }
-
-
-    public static function table(Table $table): Table
+public function table(Table $table): Table
     {
         return $table
-            // order by created_at desc by default
+            ->query(fn(): Builder => Financing_plan::where('status', 'active'))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('registrationToken.client.full_name')
-                ->label('Client')
-                ->sortable()
-                ->searchable()
-                //link to client resource
-                ->url(fn (Financing_plan $record): string =>
+                    ->label('Client')
+                    ->sortable()
+                    ->searchable()
+                    //link to client resource
+                    ->url(fn(Financing_plan $record): string =>
                     ClientResource::getUrl('edit', ['record' => $record->registrationToken->client->id]))
-                ->default('N/A'),
+                    ->default('N/A'),
 
                 TextColumn::make('device.device_name')
                     ->label('Appareil')
@@ -198,7 +127,7 @@ class FinancingPlanResource extends Resource
                         })
                         ->modalWidth('lg')
                         ->modalHeading('Historique des paiements')
-                        ->modalContent(fn (Financing_plan $record) => view('filament.resources.financing-plans.view-payments', [
+                        ->modalContent(fn(Financing_plan $record) => view('filament.resources.financing-plans.view-payments', [
                             'payments' => $record->payments,
                         ])),
 
@@ -209,12 +138,11 @@ class FinancingPlanResource extends Resource
                         ->icon('heroicon-o-currency-dollar')
                         ->action(function (Financing_plan $record, array $data): void {
                             $financingPlanService = new FinancingPlanService();
-                            $payments = $financingPlanService->savePayment($record,$data['amount'], 'manual', uniqid("txn-"));
+                            $payments = $financingPlanService->savePayment($record, $data['amount'], 'manual', uniqid("txn-"));
                             Notification::make()
                                 ->title('Paiement ajouté avec succès.')
                                 ->success()
                                 ->send();
-
                         })
                         ->form([
                             TextInput::make('amount')
@@ -222,8 +150,8 @@ class FinancingPlanResource extends Resource
                                 ->numeric()
                                 ->prefix('CFA')
                                 // min is installment amount
-                                ->minValue(fn (Financing_plan $record) => $record->installment_amount)
-                                ->default(fn (Financing_plan $record) => $record->installment_amount)
+                                ->minValue(fn(Financing_plan $record) => $record->installment_amount)
+                                ->default(fn(Financing_plan $record) => $record->installment_amount)
                                 ->required(),
                         ]),
 
@@ -239,30 +167,6 @@ class FinancingPlanResource extends Resource
                     DeleteBulkAction::make()
                         ->label('Supprimer sélection'),
                 ]),
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => ListFinancingPlans::route('/'),
-            'create' => CreateFinancingPlan::route('/create'),
-            'edit' => EditFinancingPlan::route('/{record}/edit'),
-        ];
-    }
-
-    public static function getRecordRouteBindingEloquentQuery(): Builder
-    {
-        return parent::getRecordRouteBindingEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
             ]);
     }
 }
