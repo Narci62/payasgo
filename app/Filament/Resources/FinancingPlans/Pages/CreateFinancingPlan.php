@@ -31,8 +31,28 @@ class CreateFinancingPlan extends CreateRecord
         $data['next_payment_due_date'] = $date_payment_due;
         $data['grace_period_ends_at'] = $grace_period_ends_at;
 
-     
+
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        $financing_plan = $this->record;
+
+        // save payment histories
+        (new \App\Services\PaymentService())->store([
+            'financing_plan_id' => $financing_plan->id,
+            'amount' => $financing_plan->down_payment,
+            'method' => "manual",
+            'transaction_id' => uniqid('txn'),
+            'status' => 'completed',
+            'paid_at' => now(),
+        ]);
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 
 }

@@ -6,7 +6,8 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
+        "barryvdh/laravel-dompdf": "*",
         "fedapay/fedapay-php": "^0.4.7",
         "filament/filament": "^4.0",
         "laravel-notification-channels/fcm": "^5.1",
