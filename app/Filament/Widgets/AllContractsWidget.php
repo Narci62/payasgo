@@ -28,7 +28,7 @@ class AllContractsWidget extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query(fn (): Builder => Financing_plan::query())
+            ->query(fn (): Builder => Financing_plan::where('status', 'defaulted'))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('registrationToken.client.full_name')

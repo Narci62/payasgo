@@ -54,10 +54,10 @@ class SalesReport extends Page implements HasTable
                         }
 
                         return match ($data['value']) {
-                            'today' => $query->whereDate('updated_at', today()),
-                            'week'  => $query->whereBetween('updated_at', [now()->startOfWeek(), now()->endOfWeek()]),
-                            'month' => $query->whereMonth('updated_at', now()->month)
-                                ->whereYear('updated_at', now()->year),
+                            'today' => $query->whereDate('created_at', today()),
+                            'week'  => $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]),
+                            'month' => $query->whereMonth('created_at', now()->month)
+                                ->whereYear('created_at', now()->year),
                         };
                     }),
             ])
@@ -66,29 +66,31 @@ class SalesReport extends Page implements HasTable
                     ->label('Télécharger PDF')
                     ->color('primary')
                     ->action(fn() => $this->downloadPdf())
-                    ->requiresConfirmation(),
+                //->requiresConfirmation(),
             ]);
     }
 
     protected function getQueryByFilter()
     {
-        $period = request('tableFilters')['period']['value'] ?? 'today';
+        $state = $this->getTable()->getFilters();
+        $period = $state['period']->getState()['value'] ?? 'today';
 
         return match ($period) {
-            'week' => Payment::whereBetween('updated_at', [
+            'week' => Payment::whereBetween('created_at', [
                 Carbon::now()->startOfWeek(),
                 Carbon::now()->endOfWeek(),
             ]),
 
-            'month' => Payment::whereMonth('updated_at', Carbon::now()->month),
+            'month' => Payment::whereMonth('created_at', Carbon::now()->month),
 
-            default => Payment::whereDate('updated_at', Carbon::today()),
+            default => Payment::whereDate('created_at', Carbon::today()),
         };
     }
 
     public function downloadPdf()
     {
-        $period = request('tableFilters')['period']['value'] ?? 'today';
+        $state = $this->getTable()->getFilters();
+        $period = $state['period']->getState()['value'] ?? 'today';
         $sales = $this->getQueryByFilter()->get();
 
         $pdf = Pdf::loadView('pdf.sales-report', [
