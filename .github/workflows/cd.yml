@@ -22,8 +22,7 @@ jobs:
           extensions: mbstring, bcmath, curl, intl, pdo, mysql
 
       - name: Install dependencies
-        run: composer update
-        #run: composer install --no-dev --optimize-autoloader
+        run: composer install --no-dev --optimize-autoloader
 
       # # 3. Build frontend assets (si nécessaire)
       # - name: Build assets
