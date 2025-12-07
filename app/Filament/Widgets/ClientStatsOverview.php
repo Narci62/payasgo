@@ -25,7 +25,7 @@ class ClientStatsOverview extends StatsOverviewWidget
         // record count
         $totalClients = Client::count();
         $totalContracts = Financing_plan::count();
-        $activeContracts = Financing_plan::where('status', 'active')->count();
+        $activeContracts = Financing_plan::where('status', 'active')->where('next_payment_due_date', '>', now())->count();
         $inactiveContracts = Financing_plan::where('next_payment_due_date', '<', now())->count();;
         $paidInFullContracts = Financing_plan::where('status', 'paid_in_full')->count();
 
