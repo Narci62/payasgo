@@ -21,7 +21,7 @@ class RegistrationTokenService {
     {
         return Registration_token::where('token', $token)
             ->whereNull('used_at')
-            ->where('expires_at', '>', now())
+           // ->where('expires_at', '>', now())
             ->first();
     }
 
