@@ -49,7 +49,7 @@ class FinancingPlanResource extends Resource
 
     // change breadcrumb title
     protected static ?string $breadcrumbTitle = 'Plans de financement';
-    
+
 
     public static function form(Schema $schema): Schema
     {
@@ -236,8 +236,8 @@ class FinancingPlanResource extends Resource
 
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->label('Supprimer sélection'),
+                    // DeleteBulkAction::make()
+                    //     ->label('Supprimer sélection'),
                 ]),
             ]);
     }
