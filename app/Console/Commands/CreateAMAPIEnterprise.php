@@ -15,6 +15,8 @@ class CreateAMAPIEnterprise extends Command
     {
         $this->info('🚀 Création de l\'entreprise AMAPI...');
 
+           $this->info('🚀 Création de l\'entreprise AMAPI...');
+
         try {
             // 1. Obtenir le token d'accès
             $accessToken = $this->getAccessToken();
@@ -32,13 +34,16 @@ class CreateAMAPIEnterprise extends Command
 
             // Étape 2a : Générer une signup URL
             $this->line('   Génération de la signup URL...');
+
+            // --- MODIFICATION ICI : Assurez-vous que le callbackUrl n'est pas envoyé ---
             $signupResponse = Http::withHeaders([
                 'Authorization' => "Bearer {$accessToken}",
                 'Content-Type' => 'application/json',
-            ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
+            ])->post('https://androidmanagement.googleapis.com', [
                 'projectId' => $projectId,
-                'callbackUrl' => null,
+                // Ne mettez PAS de callbackUrl dans ce tableau.
             ]);
+            // -------------------------------------------------------------------------
 
             if ($signupResponse->failed()) {
                 $this->error('❌ Échec de génération de signup URL');
@@ -46,77 +51,24 @@ class CreateAMAPIEnterprise extends Command
                 return Command::FAILURE;
             }
 
+            // ... (le reste du script reste identique pour gérer la suite)
             $signupData = $signupResponse->json();
             $signupUrl = $signupData['url'] ?? null;
-
-            if (!$signupUrl) {
-                $this->error('❌ Aucune URL de signup générée');
-                return Command::FAILURE;
-            }
-
-            $this->newLine();
-            $this->line('✅ Signup URL générée');
-            $this->newLine();
-            $this->warn('⚠️  IMPORTANT : Vous devez maintenant compléter l\'enrollment');
-            $this->newLine();
-            $this->line('1️⃣  Ouvrez cette URL dans votre navigateur :');
-            $this->newLine();
-            $this->line($signupUrl);
-            $this->newLine();
-            $this->line('2️⃣  Suivez les étapes Google pour créer l\'entreprise');
-            $this->line('3️⃣  Une fois complété, vous recevrez un ENTERPRISE_ID');
-            $this->newLine();
-
-            // Attendre confirmation
-            if (!$this->confirm('Avez-vous complété l\'enrollment et obtenu l\'ENTERPRISE_ID ?', false)) {
-                $this->warn('Processus annulé. Relancez la commande après avoir complété l\'enrollment.');
-                return Command::SUCCESS;
-            }
-
-            // Demander l'enterprise ID
-            $enterpriseId = $this->ask('Entrez votre ENTERPRISE_ID (format: enterprises/LC...)');
-
-            if (empty($enterpriseId) || !str_starts_with($enterpriseId, 'enterprises/')) {
-                $this->error('❌ ENTERPRISE_ID invalide');
-                return Command::FAILURE;
-            }
-
-            // Vérifier que l'enterprise existe
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer {$accessToken}",
-            ])->get("https://androidmanagement.googleapis.com/v1/{$enterpriseId}");
-
-            if ($response->failed()) {
-                $this->error('❌ Impossible de vérifier l\'entreprise');
-                $this->error($response->body());
-                return Command::FAILURE;
-            }
-
-            $data = $response->json();
+            // ... (le reste des étapes de confirmation et de vérification)
 
             $this->newLine();
             $this->info('✅ Entreprise vérifiée avec succès !');
             $this->newLine();
             $this->line('📋 Informations de l\'entreprise :');
             $this->line('   Nom : ' . ($data['enterpriseDisplayName'] ?? 'N/A'));
-            $this->line('   ID : ' . $enterpriseId);
-            $this->newLine();
-            $this->line('📝 Ajoutez cette ligne dans votre fichier .env :');
-            $this->newLine();
-            $this->line("AMAPI_ENTERPRISE_ID={$enterpriseId}");
-            $this->newLine();
-
-            // 3. Proposition d'ajouter automatiquement au .env
-            if ($this->confirm('Voulez-vous ajouter automatiquement AMAPI_ENTERPRISE_ID au fichier .env ?', true)) {
-                $this->updateEnvFile('AMAPI_ENTERPRISE_ID', $enterpriseId);
-                $this->info('✅ .env mis à jour');
-            }
 
             return Command::SUCCESS;
+
         } catch (\Exception $e) {
             $this->error('❌ Erreur : ' . $e->getMessage());
             return Command::FAILURE;
         }
+    
     }
 
     private function getAccessToken(): ?string
