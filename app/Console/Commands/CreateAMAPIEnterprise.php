@@ -8,7 +8,7 @@ use Google\Client as GoogleClient;
 
 class CreateAMAPIEnterprise extends Command
 {
-    protected $signature = 'amapi:create-enterprise {--name=trueline}';
+    protected $signature = 'amapi:create-enterprise {--name=PayAsGo}';
     protected $description = 'Crée une nouvelle entreprise dans Android Management API';
 
     public function handle()
@@ -36,8 +36,8 @@ class CreateAMAPIEnterprise extends Command
                 'Authorization' => "Bearer {$accessToken}",
                 'Content-Type' => 'application/json',
             ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
-                'projectId' => $projectId
-               // 'callbackUrl' => config('app.url') . '/amapi-callback', // Optionnel
+                'projectId' => $projectId,
+                // Pas de callbackUrl pour éviter l'erreur INSECURE_CALLBACK_URL
             ]);
 
             if ($signupResponse->failed()) {
@@ -87,26 +87,29 @@ class CreateAMAPIEnterprise extends Command
             ])->get("https://androidmanagement.googleapis.com/v1/{$enterpriseId}");
 
             if ($response->failed()) {
-                $this->error('❌ Échec de création de l\'entreprise');
+                $this->error('❌ Impossible de vérifier l\'entreprise');
                 $this->error($response->body());
                 return Command::FAILURE;
             }
 
             $data = $response->json();
-            $enterpriseId = $data['name'];
 
             $this->newLine();
-            $this->info('✅ Entreprise créée avec succès !');
+            $this->info('✅ Entreprise vérifiée avec succès !');
             $this->newLine();
-            $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
+            $this->line('📋 Informations de l\'entreprise :');
+            $this->line('   Nom : ' . ($data['enterpriseDisplayName'] ?? 'N/A'));
+            $this->line('   ID : ' . $enterpriseId);
+            $this->newLine();
+            $this->line('📝 Ajoutez cette ligne dans votre fichier .env :');
             $this->newLine();
             $this->line("AMAPI_ENTERPRISE_ID={$enterpriseId}");
             $this->newLine();
 
-            // 3. Afficher l'URL de signup (optionnel)
-            if (isset($data['signupUrl']['url'])) {
-                $this->line('🔗 URL de signup (pour enrollment manuel) :');
-                $this->line($data['signupUrl']['url']);
+            // 3. Proposition d'ajouter automatiquement au .env
+            if ($this->confirm('Voulez-vous ajouter automatiquement AMAPI_ENTERPRISE_ID au fichier .env ?', true)) {
+                $this->updateEnvFile('AMAPI_ENTERPRISE_ID', $enterpriseId);
+                $this->info('✅ .env mis à jour');
             }
 
             return Command::SUCCESS;
@@ -139,5 +142,34 @@ class CreateAMAPIEnterprise extends Command
             $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Met à jour une variable dans le fichier .env
+     */
+    private function updateEnvFile(string $key, string $value): void
+    {
+        $envFile = base_path('.env');
+
+        if (!file_exists($envFile)) {
+            return;
+        }
+
+        $content = file_get_contents($envFile);
+
+        // Vérifier si la clé existe déjà
+        if (preg_match("/^{$key}=/m", $content)) {
+            // Remplacer la valeur existante
+            $content = preg_replace(
+                "/^{$key}=.*/m",
+                "{$key}={$value}",
+                $content
+            );
+        } else {
+            // Ajouter la nouvelle clé
+            $content .= "\n{$key}={$value}\n";
+        }
+
+        file_put_contents($envFile, $content);
     }
 }
