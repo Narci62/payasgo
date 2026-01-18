@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\Api\ClientController;
-use App\Http\Controllers\Api\DeviceController;
-use App\Http\Controllers\Api\DeviceStatusController;
-use App\Http\Controllers\Api\FedapayWebhookController;
-use App\Http\Controllers\Api\FinancingPlanController;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\AMAPIWebhookController;
+use App\Http\Controllers\Api\DeviceStatusController;
+use App\Http\Controllers\Api\FinancingPlanController;
+use App\Http\Controllers\Api\FedapayWebhookController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -39,3 +40,7 @@ Route::middleware('auth:device-api', 'device.auth')->prefix('device')->group(fun
 // payment by fedepay
 Route::post("/webhooks/fedapay", [FedapayWebhookController::class, "handleWebhook"]);
 Route::post('/webhook', [FedapayWebhookController::class, 'webhook'])->name('fedapay.webhook');
+
+// Webhook AMAPI (doit être accessible publiquement)
+Route::post('/webhooks/amapi', [AMAPIWebhookController::class, 'handleWebhook'])
+    ->name('amapi.webhook');
