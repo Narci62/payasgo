@@ -37,7 +37,7 @@ class CreateAMAPIEnterprise extends Command
                 'Content-Type' => 'application/json',
             ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
                 'projectId' => $projectId,
-                // Pas de callbackUrl pour éviter l'erreur INSECURE_CALLBACK_URL
+                'callbackUrl' => null,
             ]);
 
             if ($signupResponse->failed()) {
@@ -113,7 +113,6 @@ class CreateAMAPIEnterprise extends Command
             }
 
             return Command::SUCCESS;
-
         } catch (\Exception $e) {
             $this->error('❌ Erreur : ' . $e->getMessage());
             return Command::FAILURE;
@@ -137,7 +136,6 @@ class CreateAMAPIEnterprise extends Command
             $token = $client->fetchAccessTokenWithAssertion();
 
             return $token['access_token'] ?? null;
-
         } catch (\Exception $e) {
             $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
             return null;
