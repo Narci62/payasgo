@@ -10,6 +10,7 @@
         "barryvdh/laravel-dompdf": "*",
         "fedapay/fedapay-php": "^0.4.7",
         "filament/filament": "^4.0",
+        "google/apiclient": "^2.19",
         "laravel-notification-channels/fcm": "^5.1",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",

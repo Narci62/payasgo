@@ -1,0 +1,143 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
+use Google\Client as GoogleClient;
+
+class CreateAMAPIEnterprise extends Command
+{
+    protected $signature = 'amapi:create-enterprise {--name=trueline}';
+    protected $description = 'Crée une nouvelle entreprise dans Android Management API';
+
+    public function handle()
+    {
+        $this->info('🚀 Création de l\'entreprise AMAPI...');
+
+        try {
+            // 1. Obtenir le token d'accès
+            $accessToken = $this->getAccessToken();
+
+            if (!$accessToken) {
+                $this->error('❌ Impossible d\'obtenir le token d\'accès');
+                return Command::FAILURE;
+            }
+
+            $this->info('✅ Token d\'accès obtenu');
+
+            // 2. Créer l'entreprise via signupUrl
+            $enterpriseName = $this->option('name');
+            $projectId = config('services.amapi.project_id');
+
+            // Étape 2a : Générer une signup URL
+            $this->line('   Génération de la signup URL...');
+            $signupResponse = Http::withHeaders([
+                'Authorization' => "Bearer {$accessToken}",
+                'Content-Type' => 'application/json',
+            ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
+                'projectId' => $projectId
+               // 'callbackUrl' => config('app.url') . '/amapi-callback', // Optionnel
+            ]);
+
+            if ($signupResponse->failed()) {
+                $this->error('❌ Échec de génération de signup URL');
+                $this->error($signupResponse->body());
+                return Command::FAILURE;
+            }
+
+            $signupData = $signupResponse->json();
+            $signupUrl = $signupData['url'] ?? null;
+
+            if (!$signupUrl) {
+                $this->error('❌ Aucune URL de signup générée');
+                return Command::FAILURE;
+            }
+
+            $this->newLine();
+            $this->line('✅ Signup URL générée');
+            $this->newLine();
+            $this->warn('⚠️  IMPORTANT : Vous devez maintenant compléter l\'enrollment');
+            $this->newLine();
+            $this->line('1️⃣  Ouvrez cette URL dans votre navigateur :');
+            $this->newLine();
+            $this->line($signupUrl);
+            $this->newLine();
+            $this->line('2️⃣  Suivez les étapes Google pour créer l\'entreprise');
+            $this->line('3️⃣  Une fois complété, vous recevrez un ENTERPRISE_ID');
+            $this->newLine();
+
+            // Attendre confirmation
+            if (!$this->confirm('Avez-vous complété l\'enrollment et obtenu l\'ENTERPRISE_ID ?', false)) {
+                $this->warn('Processus annulé. Relancez la commande après avoir complété l\'enrollment.');
+                return Command::SUCCESS;
+            }
+
+            // Demander l'enterprise ID
+            $enterpriseId = $this->ask('Entrez votre ENTERPRISE_ID (format: enterprises/LC...)');
+
+            if (empty($enterpriseId) || !str_starts_with($enterpriseId, 'enterprises/')) {
+                $this->error('❌ ENTERPRISE_ID invalide');
+                return Command::FAILURE;
+            }
+
+            // Vérifier que l'enterprise existe
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$accessToken}",
+            ])->get("https://androidmanagement.googleapis.com/v1/{$enterpriseId}");
+
+            if ($response->failed()) {
+                $this->error('❌ Échec de création de l\'entreprise');
+                $this->error($response->body());
+                return Command::FAILURE;
+            }
+
+            $data = $response->json();
+            $enterpriseId = $data['name'];
+
+            $this->newLine();
+            $this->info('✅ Entreprise créée avec succès !');
+            $this->newLine();
+            $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
+            $this->newLine();
+            $this->line("AMAPI_ENTERPRISE_ID={$enterpriseId}");
+            $this->newLine();
+
+            // 3. Afficher l'URL de signup (optionnel)
+            if (isset($data['signupUrl']['url'])) {
+                $this->line('🔗 URL de signup (pour enrollment manuel) :');
+                $this->line($data['signupUrl']['url']);
+            }
+
+            return Command::SUCCESS;
+
+        } catch (\Exception $e) {
+            $this->error('❌ Erreur : ' . $e->getMessage());
+            return Command::FAILURE;
+        }
+    }
+
+    private function getAccessToken(): ?string
+    {
+        try {
+            $serviceAccountPath = config('services.amapi.service_account_json');
+
+            if (!file_exists($serviceAccountPath)) {
+                $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
+                return null;
+            }
+
+            $client = new GoogleClient();
+            $client->setAuthConfig($serviceAccountPath);
+            $client->addScope('https://www.googleapis.com/auth/androidmanagement');
+
+            $token = $client->fetchAccessTokenWithAssertion();
+
+            return $token['access_token'] ?? null;
+
+        } catch (\Exception $e) {
+            $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
+            return null;
+        }
+    }
+}
