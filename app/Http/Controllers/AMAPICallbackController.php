@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class AMAPICallbackController extends Controller
 {
@@ -18,6 +19,8 @@ class AMAPICallbackController extends Controller
             'all_params' => $request->all(),
             'query' => $request->query(),
         ]);
+
+        dd($request);
 
         // Google envoie les paramètres suivants :
         // - enterpriseToken : Token unique de l'entreprise créée
@@ -40,6 +43,11 @@ class AMAPICallbackController extends Controller
                 throw new \Exception('Impossible de récupérer l\'enterprise ID');
             }
 
+            Log::info('AMAPI Enterprise created successfully', [
+                'enterprise_id' => $enterpriseId,
+                'admin_email' => $adminEmail,
+            ]);
+
             // Stocker l'ENTERPRISE_ID (plusieurs options)
             $this->storeEnterpriseId($enterpriseId);
 
@@ -53,7 +61,6 @@ class AMAPICallbackController extends Controller
                 'enterprise_id' => $enterpriseId,
                 'admin_email' => $adminEmail,
             ]);
-
         } catch (\Exception $e) {
             Log::error('AMAPI Callback error', [
                 'error' => $e->getMessage(),
@@ -69,30 +76,67 @@ class AMAPICallbackController extends Controller
     /**
      * Récupère l'ENTERPRISE_ID à partir du token
      */
+    // private function getEnterpriseIdFromToken(string $enterpriseToken): ?string
+    // {
+    //     try {
+    //         $accessToken = $this->getAccessToken();
+
+    //         // Compléter l'enrollment avec le token
+    //         $response = \Illuminate\Support\Facades\Http::withHeaders([
+    //             'Authorization' => "Bearer {$accessToken}",
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://androidmanagement.googleapis.com/v1/enterprises', [
+    //             'enterpriseToken' => $enterpriseToken,
+    //             'signupUrlName' => 'signup', // Optionnel
+    //         ]);
+
+    //         if ($response->failed()) {
+    //             Log::error('Failed to complete enrollment', [
+    //                 'response' => $response->body()
+    //             ]);
+    //             return null;
+    //         }
+
+    //         $data = $response->json();
+    //         return $data['name'] ?? null; // Format: enterprises/LC...
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Error getting enterprise ID from token', [
+    //             'error' => $e->getMessage()
+    //         ]);
+    //         return null;
+    //     }
+    // }
+
     private function getEnterpriseIdFromToken(string $enterpriseToken): ?string
     {
         try {
             $accessToken = $this->getAccessToken();
 
-            // Compléter l'enrollment avec le token
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
+            $signupUrlName = session('amapi_signup_url_name'); // Récupération du nom stocké
+
+            $response = Http::withHeaders([
                 'Authorization' => "Bearer {$accessToken}",
-                'Content-Type' => 'application/json',
-            ])->post('https://androidmanagement.googleapis.com/v1/enterprises', [
-                'enterpriseToken' => $enterpriseToken,
-                'signupUrlName' => 'signup', // Optionnel
+            ])->post("https://androidmanagement.googleapis.com/v1/enterprises", [
+                'query' => [
+                    'enterpriseToken' => $enterpriseToken,
+                    'signupUrlName' => $signupUrlName, // Valeur type: "signupUrls/ABC123XYZ"
+                    'projectId' => config('services.amapi.project_id')
+                ],
+                'body' => (object)[]
             ]);
 
             if ($response->failed()) {
                 Log::error('Failed to complete enrollment', [
-                    'response' => $response->body()
+                    'status' => $response->status(),
+                    'response' => $response->json()
                 ]);
                 return null;
             }
 
             $data = $response->json();
-            return $data['name'] ?? null; // Format: enterprises/LC...
-
+            // Retourne le format "enterprises/LCxxxxxxxx"
+            return $data['name'] ?? null;
         } catch (\Exception $e) {
             Log::error('Error getting enterprise ID from token', [
                 'error' => $e->getMessage()
@@ -100,6 +144,7 @@ class AMAPICallbackController extends Controller
             return null;
         }
     }
+
 
     /**
      * Stocke l'ENTERPRISE_ID de plusieurs façons
