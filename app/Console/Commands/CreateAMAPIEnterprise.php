@@ -69,6 +69,9 @@ class CreateAMAPIEnterprise extends Command
 
             $signupData = $signupResponse->json();
             $signupUrl = $signupData['url'] ?? null;
+            $signUpUrlName = $signupData['name'] ?? null;
+
+            session(['amapi_signup_url_name' => $signUpUrlName]);
 
             if (!$signupUrl) {
                 $this->error('❌ Aucune URL de signup générée');
@@ -83,6 +86,8 @@ class CreateAMAPIEnterprise extends Command
             $this->line('1️⃣  Ouvrez cette URL dans votre navigateur :');
             $this->newLine();
             $this->line($signupUrl);
+            $this->newLine();
+            $this->line(' Url name : ' . $signUpUrlName);
             $this->newLine();
             $this->line('2️⃣  Suivez les étapes Google pour créer l\'entreprise');
             $this->line('3️⃣  Une fois complété, vous recevrez un ENTERPRISE_ID');
