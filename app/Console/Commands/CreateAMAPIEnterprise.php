@@ -139,7 +139,6 @@ class CreateAMAPIEnterprise extends Command
             }
 
             return Command::SUCCESS;
-
         } catch (\Exception $e) {
             $this->error('❌ Erreur : ' . $e->getMessage());
             return Command::FAILURE;
@@ -149,7 +148,7 @@ class CreateAMAPIEnterprise extends Command
     private function getAccessToken(): ?string
     {
         try {
-            $serviceAccountPath = config('services.amapi.service_account_json');
+            $serviceAccountPath = storage_path('app/public/trueline-payguard-amapi-556ed97a2e37.json');
 
             if (!file_exists($serviceAccountPath)) {
                 $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
@@ -163,7 +162,6 @@ class CreateAMAPIEnterprise extends Command
             $token = $client->fetchAccessTokenWithAssertion();
 
             return $token['access_token'] ?? null;
-
         } catch (\Exception $e) {
             $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
             return null;

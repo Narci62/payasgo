@@ -76,75 +76,41 @@ class AMAPICallbackController extends Controller
     /**
      * Récupère l'ENTERPRISE_ID à partir du token
      */
-    // private function getEnterpriseIdFromToken(string $enterpriseToken): ?string
-    // {
-    //     try {
-    //         $accessToken = $this->getAccessToken();
-
-    //         // Compléter l'enrollment avec le token
-    //         $response = \Illuminate\Support\Facades\Http::withHeaders([
-    //             'Authorization' => "Bearer {$accessToken}",
-    //             'Content-Type' => 'application/json',
-    //         ])->post('https://androidmanagement.googleapis.com/v1/enterprises', [
-    //             'enterpriseToken' => $enterpriseToken,
-    //             'signupUrlName' => 'signup', // Optionnel
-    //         ]);
-
-    //         if ($response->failed()) {
-    //             Log::error('Failed to complete enrollment', [
-    //                 'response' => $response->body()
-    //             ]);
-    //             return null;
-    //         }
-
-    //         $data = $response->json();
-    //         return $data['name'] ?? null; // Format: enterprises/LC...
-
-    //     } catch (\Exception $e) {
-    //         Log::error('Error getting enterprise ID from token', [
-    //             'error' => $e->getMessage()
-    //         ]);
-    //         return null;
-    //     }
-    // }
 
     private function getEnterpriseIdFromToken(string $enterpriseToken): ?string
     {
         try {
             $accessToken = $this->getAccessToken();
-
             $signupUrlName = session('amapi_signup_url_name'); // Récupération du nom stocké
 
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer {$accessToken}",
-            ])->post("https://androidmanagement.googleapis.com/v1/enterprises", [
-                'query' => [
-                    'enterpriseToken' => $enterpriseToken,
-                    'signupUrlName' => $signupUrlName, // Valeur type: "signupUrls/ABC123XYZ"
-                    'projectId' => config('services.amapi.project_id')
-                ],
-                'body' => (object)[]
+            // 1. On construit l'URL avec les paramètres obligatoires
+            // ATTENTION : signupUrlName doit être au format "signupUrls/XYZ"
+            $queryParams = http_build_query([
+                'enterpriseToken' => $enterpriseToken,
+                'signupUrlName'   => $signupUrlName
             ]);
 
+            $url = "https://androidmanagement.googleapis.com?{$queryParams}";
+
+            // 2. L'appel POST : Le corps DOIT être un objet JSON vide {}
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => "Bearer {$accessToken}",
+                'Content-Type'  => 'application/json',
+            ])->withBody('{}', 'application/json')->post($url);
+
             if ($response->failed()) {
-                Log::error('Failed to complete enrollment', [
-                    'status' => $response->status(),
-                    'response' => $response->json()
-                ]);
+                // Utilisation d'un tableau vide pour éviter le TypeError précédent
+                Log::error('AMAPI 400 Error Detail', $response->json() ?? ['raw_body' => $response->body()]);
                 return null;
             }
 
-            $data = $response->json();
-            // Retourne le format "enterprises/LCxxxxxxxx"
-            return $data['name'] ?? null;
+            return $response->json()['name']; // Retourne "enterprises/LC..."
+
         } catch (\Exception $e) {
-            Log::error('Error getting enterprise ID from token', [
-                'error' => $e->getMessage()
-            ]);
+            Log::error('Exception AMAPI', ['msg' => $e->getMessage()]);
             return null;
         }
     }
-
 
     /**
      * Stocke l'ENTERPRISE_ID de plusieurs façons
@@ -202,7 +168,7 @@ class AMAPICallbackController extends Controller
      */
     private function getAccessToken(): string
     {
-        $serviceAccountPath = config('services.amapi.service_account_json');
+        $serviceAccountPath = storage_path('app/public/trueline-payguard-amapi-556ed97a2e37.json');
 
         $client = new \Google\Client();
         $client->setAuthConfig($serviceAccountPath);
