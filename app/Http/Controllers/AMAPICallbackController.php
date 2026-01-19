@@ -43,6 +43,11 @@ class AMAPICallbackController extends Controller
                 throw new \Exception('Impossible de récupérer l\'enterprise ID');
             }
 
+            Log::info('AMAPI Enterprise created successfully', [
+                'enterprise_id' => $enterpriseId,
+                'admin_email' => $adminEmail,
+            ]);
+
             // Stocker l'ENTERPRISE_ID (plusieurs options)
             $this->storeEnterpriseId($enterpriseId);
 
