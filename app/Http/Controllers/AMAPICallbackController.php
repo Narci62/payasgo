@@ -171,7 +171,7 @@ class AMAPICallbackController extends Controller
 
         $response = Http::withHeaders([
             'Authorization' => "Bearer $accessToken",
-        ])->post("https://androidmanagement.googleapis.com", [
+        ])->post("https://androidmanagement.googleapis.com/v1/signupUrls", [
             'projectId' => $projectId,
             'callbackUrl' => "https://pguard.trueline-system.com/amapi",
         ]);
@@ -203,7 +203,7 @@ class AMAPICallbackController extends Controller
         $accessToken = $this->getAccessToken();
 
         // En Laravel, pour reproduire le .create(new Enterprise()) de Java :
-        $url = "https://androidmanagement.googleapis.com?" . http_build_query([
+        $url = "https://androidmanagement.googleapis.com/v1/enterprises?" . http_build_query([
             'projectId' => $projectId,
             'enterpriseToken' => $enterpriseToken,
             'signupUrlName' => $signupUrlName,
