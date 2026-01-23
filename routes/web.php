@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AMAPICallbackController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FedapayWebhookController;
 
@@ -13,5 +14,10 @@ Route::post('/paiement', [FedapayWebhookController::class, 'processPayment'])->n
 Route::get('/fedapay/finish', [FedapayWebhookController::class, 'callback'])->name('fedapay.end');
 
 // Callback AMAPI (après enrollment)
-Route::get('/amapi/callback', [App\Http\Controllers\AMAPICallbackController::class, 'handleEnrollmentCallback'])
+Route::get('/amapi', [App\Http\Controllers\AMAPICallbackController::class, 'handleCallback'])
     ->name('amapi.callback');
+
+Route::get('/generate-signup-url', [AMAPICallbackController::class, 'generateSignupUrl'])
+        ->name('amapi.generate-signup-url');
+
+
