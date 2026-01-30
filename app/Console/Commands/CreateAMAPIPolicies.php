@@ -39,12 +39,12 @@ class CreateAMAPIPolicies extends Command
             }
 
             // 2. Créer la politique de verrouillage
-            $this->info('📝 Création de locked_policy...');
-            $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
+            // $this->info('📝 Création de locked_policy...');
+            // $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
 
-            if ($lockedPolicyId) {
-                $this->info("✅ locked_policy créée : {$lockedPolicyId}");
-            }
+            // if ($lockedPolicyId) {
+            //     $this->info("✅ locked_policy créée : {$lockedPolicyId}");
+            // }
 
             $this->newLine();
             $this->info('✅ Politiques créées avec succès !');
@@ -52,7 +52,7 @@ class CreateAMAPIPolicies extends Command
             $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
             $this->newLine();
             $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
-            $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
+           // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
             $this->newLine();
 
             return Command::SUCCESS;
@@ -66,7 +66,9 @@ class CreateAMAPIPolicies extends Command
     private function createDefaultPolicy(string $accessToken, string $enterpriseId): ?string
     {
         $policyId = 'default_policy';
-        $url = "https://androidmanagement.googleapis.com/v1/{$enterpriseId}/policies/{$policyId}";
+        $enterpriseId = ltrim($enterpriseId, '/');
+        $name = "enterprises/{$enterpriseId}/policies/{$policyId}";
+        $url = "https://androidmanagement.googleapis.com/v1/{$name}";
 
         $policy = $this->getDefaultPolicyConfig();
 
@@ -109,7 +111,7 @@ class CreateAMAPIPolicies extends Command
             // Appareil en mode kiosque avec votre application vitrine
             'applications' => [
                 [
-                    'packageName' => 'com.payasgo.vitrine', // À remplacer par votre package
+                    'packageName' => 'com.trueline.pg', // À remplacer par votre package
                     'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                     'lockTaskAllowed' => true, // Permet le mode kiosque
@@ -193,7 +195,7 @@ class CreateAMAPIPolicies extends Command
             // Application vitrine forcée (pour afficher message verrouillage)
             'applications' => [
                 [
-                    'packageName' => 'com.payasgo.vitrine', // Votre app
+                    'packageName' => 'com.trueline.pg', // Votre app
                     'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                     'lockTaskAllowed' => true,
