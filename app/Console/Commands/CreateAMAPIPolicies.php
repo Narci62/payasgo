@@ -3,8 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Google\Client as GoogleClient;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class CreateAMAPIPolicies extends Command
 {
@@ -52,11 +53,10 @@ class CreateAMAPIPolicies extends Command
             $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
             $this->newLine();
             $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
-           // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
+            // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
             $this->newLine();
 
             return Command::SUCCESS;
-
         } catch (\Exception $e) {
             $this->error('❌ Erreur : ' . $e->getMessage());
             return Command::FAILURE;
@@ -75,10 +75,15 @@ class CreateAMAPIPolicies extends Command
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$accessToken}",
             'Content-Type' => 'application/json',
-        ])->put($url, $policy);
+        ])->patch($url, $policy);
 
         if ($response->failed()) {
+            Log::error('AMAPI Policy Error', [
+                'constructed_url' => $url,
+                'error_detail' => $response->json() ?? $response->body()
+            ]);
             $this->error('Échec création default_policy : ' . $response->body());
+
             return null;
         }
 
@@ -105,7 +110,7 @@ class CreateAMAPIPolicies extends Command
         return $policyId;
     }
 
-    private function getDefaultPolicyConfig(): array
+    private function getDefaultPolicyConfigs(): array
     {
         return [
             // Appareil en mode kiosque avec votre application vitrine
@@ -166,10 +171,12 @@ class CreateAMAPIPolicies extends Command
                 [
                     'nonComplianceDetailCondition' => [
                         'settingName' => 'locationType',
-                        'comparisonOperator' => 'EQUALS',
-                        'value' => 'GPS_DISABLED',
+                        // 'comparisonOperator' et 'value' n'existent pas ici.
+                        // On utilise 'nonMatchingValue' pour déclencher la règle
+                        // si la valeur n'est pas celle attendue.
+                        'nonMatchingValue' => 'GPS_DISABLED',
                     ],
-                    'disableApps' => false, // Ne pas désactiver apps si GPS off
+                    'disableApps' => false,
                 ],
             ],
 
@@ -188,6 +195,20 @@ class CreateAMAPIPolicies extends Command
             ],
         ];
     }
+
+    private function getDefaultPolicyConfig(): array
+{
+    return [
+        'applications' => [
+            [
+                'packageName' => 'com.trueline.pg',
+                'installType' => 'FORCE_INSTALLED',
+                'defaultPermissionPolicy' => 'GRANT',
+            ],
+        ],
+        // Supprimez complianceRules pour le premier test réussi
+    ];
+}
 
     private function getLockedPolicyConfig(): array
     {
@@ -291,7 +312,6 @@ class CreateAMAPIPolicies extends Command
             $token = $client->fetchAccessTokenWithAssertion();
 
             return $token['access_token'] ?? null;
-
         } catch (\Exception $e) {
             $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
             return null;

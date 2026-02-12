@@ -24,6 +24,11 @@ class Device extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function phone() : BelongsTo
+    {
+        return $this->belongsTo(Phone::class);
+    }
+
     public function financingPlan() : HasOne
     {
         return $this->hasOne(Financing_plan::class);

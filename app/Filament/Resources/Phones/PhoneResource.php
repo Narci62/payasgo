@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Phones;
 use BackedEnum;
 use App\Models\Phone;
 use Filament\Tables\Table;
+use Filament\Actions\Action;
 use Filament\Schemas\Schema;
 use Filament\Actions\EditAction;
 use Filament\Resources\Resource;
@@ -128,6 +129,11 @@ class PhoneResource extends Resource
             ->actions([
                 EditAction::make(),
               //  DeleteAction::make(),
+              // add action for sale who open a form to register the sale contract in another resource with the phone id
+              Action::make('sale')
+                    ->label('Vendre')
+                    ->icon('heroicon-o-currency-dollar'),
+                    //->url(fn (Phone $record) => route('filament.resources.financing_plan.create', ['phone_id' => $record->id])),
             ])
             ->bulkActions([
              //   DeleteBulkAction::make(),
