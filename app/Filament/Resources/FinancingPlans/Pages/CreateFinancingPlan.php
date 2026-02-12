@@ -5,10 +5,37 @@ namespace App\Filament\Resources\FinancingPlans\Pages;
 use Carbon\Carbon;
 use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\FinancingPlans\FinancingPlanResource;
+use App\Models\Phone;
+use App\Services\DeviceService;
+use Illuminate\Support\Facades\Cache;
 
 class CreateFinancingPlan extends CreateRecord
 {
     protected static string $resource = FinancingPlanResource::class;
+
+    protected function beforeCreate(): void
+    {
+
+        $formData = $this->data;
+
+        // create device
+
+        $device_name = Phone::find($formData['phone_id'])->brand;
+
+        $device = new DeviceService();
+        $createdDevice = $device->createDevice([
+            'phone_id' => $formData['phone_id'],
+            'device_id' => "manual-" . uniqid(),
+            'device_name' => $device_name,
+            'client_id' => $formData['client_id'],
+        ]);
+
+        //call api to create device in google amapi
+        // $device->createDeviceInAmapi($createdDevice);
+
+        // save device_id in cache to be used in afterCreate to update financing plan with device id
+        Cache::put('created_device_id', $createdDevice->id, now()->addMinutes(2));
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -16,6 +43,7 @@ class CreateFinancingPlan extends CreateRecord
         $data['registration_token_id'] = $registration_token->id;
 
         unset($data['client_id']);
+        unset($data['phone_id']);
 
         $financing_plan_service = app("App\Services\FinancingPlanService");
 
@@ -39,6 +67,13 @@ class CreateFinancingPlan extends CreateRecord
     {
         $financing_plan = $this->record;
 
+
+        // update financing plan with device id
+        $financing_plan->update([
+            'device_id' => Cache::pull('created_device_id'),
+        ]);
+
+
         // save payment histories
         (new \App\Services\PaymentService())->store([
             'financing_plan_id' => $financing_plan->id,
@@ -54,5 +89,4 @@ class CreateFinancingPlan extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
-
 }
