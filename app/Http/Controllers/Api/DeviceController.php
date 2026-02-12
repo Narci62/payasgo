@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\DeviceResource;
 use App\Http\Requests\StoreDeviceRequest;
 use App\Http\Requests\UpdateDeviceRequest;
+use Illuminate\Support\Facades\Auth;
 
 class DeviceController extends Controller
 {
@@ -68,6 +69,15 @@ class DeviceController extends Controller
         return (new DeviceResource($device))->additional(['token' => $token]);
     }
 
+    public function userProfile(Request $request)
+    {
+        $device =$request->user();
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+        return new DeviceResource($device);
+    }
+
     /**
      * Display the specified resource.
      */
@@ -104,17 +114,17 @@ class DeviceController extends Controller
     public function refresh(Request $request)
     {
         $device = Device::whereHas('client', function ($query) use ($request) {
-            $query->where('reference', $request->input('matricule'));
+            $query->where('reference', $request->input('matricule'))->orderBy('created_at', 'desc');
         })->first();
 
         if (!$device) {
             return response()->json(['message' => 'Device not found'], 404);
         }
 
-     //   $device->update(['last_activity_at' => now()]);
+        //   $device->update(['last_activity_at' => now()]);
 
         // Révoquer l'ancien token et en créer un nouveau
-      //  $request->user()->currentAccessToken()->delete();
+        //  $request->user()->currentAccessToken()->delete();
         $token = $device->createToken('device-token', ['device:*'])->plainTextToken;
 
         // return response()->json([
