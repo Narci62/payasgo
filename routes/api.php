@@ -32,7 +32,7 @@ Route::post("/client/register", [ClientController::class, "store"]);
 Route::post("/client/financing-plan", [FinancingPlanController::class, "store"]);
 
 // registration device
-Route::post("/device/register", [DeviceController::class, "store"]);
+Route::post("/user-profile", [DeviceController::class, "store"]);
 Route::post("/auth", [DeviceController::class, "refresh"]);
 
 Route::middleware('auth:device-api', 'device.auth')->prefix('device')->group(function () {
