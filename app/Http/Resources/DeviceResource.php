@@ -17,8 +17,6 @@ class DeviceResource extends JsonResource
     {
         $this->loadMissing(['financingPlan','client']);
 
-        dd($this);
-
         $expiresAt = $this->financingPlan?->next_payment_due_date;
         $gracePeriodEndsAt = $this->financingPlan?->grace_period_ends_at;
 
