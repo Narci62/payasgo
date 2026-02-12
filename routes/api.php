@@ -21,7 +21,7 @@ Route::middleware('auth:admin-api')->prefix('admin')->group(function () {
     Route::get("/manuel-paiement", [FedapayWebhookController::class, "index"]);
 });
 
-Route::get('/payasgo', function(){
+Route::get('/payasgo', function () {
     return response()->json(['message' => 'Welcome to the PayasGo API']);
 });
 
@@ -32,7 +32,9 @@ Route::post("/client/register", [ClientController::class, "store"]);
 Route::post("/client/financing-plan", [FinancingPlanController::class, "store"]);
 
 // registration device
-Route::post("/user-profile", [DeviceController::class, "store"]);
+Route::middleware('auth:device-api', 'device.auth')->group(function () {
+    Route::get("/user-profile", [DeviceController::class, "userProfile"]);
+});
 Route::post("/auth", [DeviceController::class, "refresh"]);
 
 Route::middleware('auth:device-api', 'device.auth')->prefix('device')->group(function () {
