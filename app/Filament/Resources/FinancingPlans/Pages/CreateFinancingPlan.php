@@ -58,6 +58,7 @@ class CreateFinancingPlan extends CreateRecord
         $data['next_offline_unlock_code'] = $next_offline_unlock_code;
         $data['next_payment_due_date'] = $date_payment_due;
         $data['grace_period_ends_at'] = $grace_period_ends_at;
+        $data['status'] = 'active';
 
 
         return $data;
