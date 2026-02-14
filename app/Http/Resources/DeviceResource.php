@@ -56,8 +56,9 @@ class DeviceResource extends JsonResource
         ];
     }
 
-    public function getStatus(Carbon $expiresAt): string
+    public function getStatus($expiresAt): string
     {
+        $expiresAt = Carbon::parse($expiresAt);
         $now = Carbon::now();
 
         if ($expiresAt->isFuture()) {
