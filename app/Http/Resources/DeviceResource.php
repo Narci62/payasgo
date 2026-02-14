@@ -20,6 +20,8 @@ class DeviceResource extends JsonResource
         $expiresAt = $this->financingPlan?->next_payment_due_date;
         $gracePeriodEndsAt = $this->financingPlan?->grace_period_ends_at;
 
+        $status = $this->getStatus($expiresAt);
+
         return [
 
             'name' => $this->client?->full_name,
@@ -28,7 +30,7 @@ class DeviceResource extends JsonResource
             'paid_amount' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
             'remaining_amount' => $this->financingPlan?->remaining_balance,
             'due_date' => $expiresAt,
-            'status' => $this->financingPlan?->status,
+            'status' => $status,
 
             // 'device_id' => $this->public_id,
             // 'subscription' => [
