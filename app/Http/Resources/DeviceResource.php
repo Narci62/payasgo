@@ -53,4 +53,17 @@ class DeviceResource extends JsonResource
             // ]
         ];
     }
+
+    public function getStatus(Carbon $expiresAt): string
+    {
+        $now = Carbon::now();
+
+        if ($expiresAt->isFuture()) {
+            return 'up_to_date';
+        } elseif ($expiresAt->isPast() && $expiresAt->diffInDays($now) <= 7) {
+            return 'late';
+        } else {
+            return 'locked';
+        }
+    }
 }
