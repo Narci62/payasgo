@@ -62,7 +62,7 @@ class DeviceResource extends JsonResource
         $now = Carbon::now();
 
         if ($expiresAt->isFuture()) {
-            return 'up_to_date';
+            return 'compliant';
         } elseif ($expiresAt->isPast() && $expiresAt->diffInDays($now) <= 7) {
             return 'restricted';
         } else {
