@@ -55,8 +55,8 @@ class FinancingPlanResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Nouvelle Achat')
-                    ->description('Informations générales sur l\'achat.')
+                Section::make('Nouveau Contrat')
+                    ->description('Informations générales sur le contrat.')
                     ->schema([
                         Select::make('client_id')
                             ->label('Client')
@@ -67,6 +67,8 @@ class FinancingPlanResource extends Resource
                             ->required(),
 
                         // show phone brand and model in select options and use phone_id as value
+                        // select phone id in get url
+
                         Select::make('phone_id')
                             ->label('Téléphone')
                             ->options(
@@ -74,6 +76,7 @@ class FinancingPlanResource extends Resource
                                     return [$phone->id => "{$phone->brand} - {$phone->model}"];
                                 })
                             )
+                            ->default(fn() => request()->get('phone_id'))
                             ->searchable()
                             ->required(),
 
@@ -98,7 +101,7 @@ class FinancingPlanResource extends Resource
                         TextInput::make('days_interval')
                             ->label('Intervalle de jours entre les paiements')
                             ->integer()
-                            ->required(),
+                            ->required(), 
 
                     ])->columns(2), // 2 colonnes pour cette section
 

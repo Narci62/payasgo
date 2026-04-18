@@ -1,7 +1,10 @@
 <?php
+
 namespace App\Helpers;
 
 use Carbon\Carbon;
+use Google\Client as GoogleClient;
+use Illuminate\Support\Facades\Log;
 
 class Helper
 {
@@ -44,5 +47,30 @@ class Helper
     public static function formatDate($date): string
     {
         return Carbon::parse($date)->format('yyyy-mm-dd');
+    }
+
+    public static function getAccessToken(): ?string
+    {
+        return cache()->remember('amapi_access_token', 3500, function () {
+            try {
+                $serviceAccountPath = config('services.amapi.service_account_json');
+
+                if (!file_exists($serviceAccountPath)) {
+                    Log::error("❌ Fichier service account introuvable : {$serviceAccountPath}");
+                    return null;
+                }
+
+                $client = new GoogleClient();
+                $client->setAuthConfig($serviceAccountPath);
+                $client->addScope('https://www.googleapis.com/auth/androidmanagement');
+
+                $token = $client->fetchAccessTokenWithAssertion();
+
+                return $token['access_token'] ?? null;
+            } catch (\Exception $e) {
+                Log::error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
+                return null;
+            }
+        });
     }
 }

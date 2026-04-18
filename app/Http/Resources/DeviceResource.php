@@ -64,7 +64,7 @@ class DeviceResource extends JsonResource
         if ($expiresAt->isFuture()) {
             return 'up_to_date';
         } elseif ($expiresAt->isPast() && $expiresAt->diffInDays($now) <= 7) {
-            return 'late';
+            return 'restricted';
         } else {
             return 'locked';
         }
