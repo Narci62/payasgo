@@ -51,4 +51,18 @@ class AmapiDevice extends Model
 
         return $this->last_amapi_sync_at->diffInHours(now()) < 24;
     }
+
+    /**
+     * Ajouté un amapi_device_id par defaut aleatoire unique au moment de la création du modèle
+     */
+    protected static function booted()
+    {
+        static::creating(function ($amapiDevice) {
+            if (empty($amapiDevice->amapi_device_id)) {
+                do {
+                    $amapiDevice->amapi_device_id = 'amapi_' . bin2hex(random_bytes(8));
+                } while (self::where('amapi_device_id', $amapiDevice->amapi_device_id)->exists());
+            }
+        });
+    }
 }

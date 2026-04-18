@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\FinancingPlans\FinancingPlanResource;
 use App\Models\Phone;
+use App\Services\AMAPIClientService;
 use App\Services\DeviceService;
 use Illuminate\Support\Facades\Cache;
 
@@ -74,6 +75,10 @@ class CreateFinancingPlan extends CreateRecord
             'device_id' => Cache::pull('created_device_id'),
         ]);
 
+        // create enrollment token for google amapi enrollment
+        $amapi_enrollment_token = (new AMAPIClientService())->generateProvisioningQRCode($financing_plan->device);
+        dd($amapi_enrollment_token);
+
 
         // save payment histories
         (new \App\Services\PaymentService())->store([
@@ -84,10 +89,14 @@ class CreateFinancingPlan extends CreateRecord
             'status' => 'completed',
             'paid_at' => now(),
         ]);
+
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
+
 }
+
+

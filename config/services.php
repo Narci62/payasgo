@@ -56,7 +56,7 @@ return [
         'enterprise_id' => env('AMAPI_ENTERPRISE_ID'),
         'service_account_key' => env('AMAPI_SERVICE_ACCOUNT_KEY'),
         //path to service account json in storage/app/public/
-        'service_account_json' => env('AMAPI_SERVICE_ACCOUNT_JSON', 'storage/app/public/trueline-payguard-amapi-556ed97a2e37.json'), // Chemin vers le fichier JSON
+        'service_account_json' => storage_path(env('AMAPI_SERVICE_ACCOUNT_JSON', 'app/public/trueline-payguard-amapi-556ed97a2e37.json')), // Chemin vers le fichier JSON
 
         // Politiques prédéfinies
         'policies' => [

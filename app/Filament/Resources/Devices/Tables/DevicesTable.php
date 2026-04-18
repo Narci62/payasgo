@@ -25,14 +25,14 @@ class DevicesTable
             ->columns([
                 TextColumn::make('client.id')
                     ->searchable(),
-                TextColumn::make('public_id')
-                    ->searchable(),
+               /* TextColumn::make('public_id')
+                    ->searchable(),*/
                 TextColumn::make('android_version')
                     ->searchable(),
                 TextColumn::make('device_name')
                     ->searchable(),
-                TextColumn::make('device_id')
-                    ->searchable(),
+               /* TextColumn::make('device_id')
+                    ->searchable(),*/
                 TextColumn::make('device_model')
                     ->searchable(),
                 TextColumn::make('device_brand')

@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Helpers\Helper;
 use App\Models\AmapiDevice;
 use App\Models\Device;
 use App\Models\DeviceLockHistory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Google\Client as GoogleClient;
 use Exception;
 
 class AMAPIClientService
@@ -34,9 +36,9 @@ class AMAPIClientService
                     'policyName' => "enterprises/{$this->enterpriseId}/policies/default_policy",
                     'duration' => '2592000s', // 30 jours
                     'additionalData' => json_encode(array_merge([
-                        'device_id' => $device->id,
-                        'client_reference' => $device->client->reference,
-                        'backend_url' => config('app.url'),
+                        'device_id' => $device->id
+                        //'client_reference' => $device->client->reference,
+                        //'backend_url' => config('app.url'),
                     ], $additionalData))
                 ]);
 
@@ -65,7 +67,6 @@ class AMAPIClientService
                 'qr_code' => $qrCode,
                 'expires_at' => now()->addDays(30)
             ];
-
         } catch (Exception $e) {
             Log::error('AMAPI QR Code generation failed', [
                 'device_id' => $device->id,
@@ -73,6 +74,37 @@ class AMAPIClientService
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Checker les device amapi pour recuperer les deviceId et les mettre a jour dans la table amapi_devices
+     */
+    public function syncAMAPIDevices()
+    {
+        $response = Http::withHeaders($this->getAuthHeaders())->post("{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices");
+
+        $googleDevices = $response->json()['devices'] ?? [];
+
+        foreach ($googleDevices as $googleDevice) {
+            // On extrait le deviceId du champ 'name' (format: enterprises/.../devices/DEVICE_ID)
+            $fullPath = $googleDevice['name'];
+            $deviceId = basename($fullPath);
+
+            // On récupère l'ID Laravel stocké dans 'enrollmentTokenData'
+            $laravelId = $googleDevice['enrollmentTokenData']['device_id'] ?? null;
+
+            if ($laravelId) {
+                // Mise à jour de votre base de données
+                // utilise la mise en cache pour éviter les mises à jour répétées
+                cache()->remember("amapi_device_sync_{$laravelId}", 3600, function () use ($laravelId, $deviceId) {
+                    Device::where('id', $laravelId)->update(['amapi_device_id' => $deviceId]);
+                });
+
+                Device::where('id', $laravelId)
+                    ->whereNull('amapi_device_id')
+                    ->update(['amapi_device_id' => $deviceId]);
+            }
         }
     }
 
@@ -140,7 +172,6 @@ class AMAPIClientService
             }
 
             throw new Exception($response->body());
-
         } catch (Exception $e) {
             // Marquer comme échec
             $lockHistory->update([
@@ -218,7 +249,6 @@ class AMAPIClientService
             }
 
             throw new Exception($response->body());
-
         } catch (Exception $e) {
             $lockHistory->update([
                 'status' => 'FAILED',
@@ -262,7 +292,6 @@ class AMAPIClientService
             }
 
             return null;
-
         } catch (Exception $e) {
             Log::error('AMAPI device sync failed', [
                 'device_id' => $device->id,
@@ -292,12 +321,22 @@ class AMAPIClientService
      */
     private function getAccessToken(): string
     {
-        // Implémentation OAuth2 ou autre méthode d'auth
-        // Cache le token pour éviter trop d'appels
-        return cache()->remember('amapi_access_token', 3500, function () {
-            // Logique d'obtention du token
-            return 'your_token_here';
-        });
+        //return Helper::getAccessToken() ?? '';
+
+          try {
+            $serviceAccountPath = config('services.amapi.service_account_json');
+
+
+            $client = new GoogleClient();
+            $client->setAuthConfig($serviceAccountPath);
+            $client->addScope('https://www.googleapis.com/auth/androidmanagement');
+
+            $token = $client->fetchAccessTokenWithAssertion();
+
+            return $token['access_token'] ?? null;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     private function calculateDaysOverdue(Device $device): ?int

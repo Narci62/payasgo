@@ -197,18 +197,69 @@ class CreateAMAPIPolicies extends Command
     }
 
     private function getDefaultPolicyConfig(): array
-{
-    return [
-        'applications' => [
-            [
-                'packageName' => 'com.trueline.pg',
-                'installType' => 'FORCE_INSTALLED',
-                'defaultPermissionPolicy' => 'GRANT',
+    {
+        return [
+            'applications' => [
+                [
+                    'packageName' => 'com.trueline.pg',
+                    'installType' => 'FORCE_INSTALLED',
+                    'defaultPermissionPolicy' => 'GRANT',
+                ],
+
+                [
+                    'packageName' => 'com.android.vending',
+                    'installType' => 'AVAILABLE'
+                ]
             ],
-        ],
-        // Supprimez complianceRules pour le premier test réussi
-    ];
-}
+
+            "factoryResetDisabled"  => true,
+            "frpAdminEmails"  => [
+                "etstrueline@gmail.com"
+            ],
+
+            "safeBootDisabled"  => true,
+            "debuggingFeaturesAllowed" => false,
+            "addUserDisabled"=> true,
+            "removeUserDisabled"=> true,
+            "systemUpdate" => [
+                "type" => "WINDOWED",
+            ],
+            "appAutoUpdatePolicy" => "ALWAYS",
+            "locationMode" => "SENSORS_ONLY"
+
+        ];
+    }
+
+    private function getMiddlePolicyConfig()
+    {
+        return [
+            "applications" => [
+                [
+                    'packageName' => 'com.trueline.pg',
+                    "installType" => "FORCE_INSTALLED",
+                    "defaultRuntimePermissionsPolicy" => "GRANT"
+                ],
+                [
+                    "packageName" => "com.whatsapp",
+                    "installType" => "BLOCKED"
+                ],
+                [
+                    "packageName" => "com.zhiliaoapp.musically",
+                    "installType" => "BLOCKED"
+                ],
+                [
+                    "packageName" => "com.facebook.katana",
+                    "installType" => "BLOCKED"
+                ],
+                [
+                    "packageName" => "com.instagram.android",
+                    "installType" => "BLOCKED"
+                ]
+            ],
+            "factoryResetDisabled" => true,
+            "debuggingFeaturesAllowed" => false
+        ];
+    }
 
     private function getLockedPolicyConfig(): array
     {
@@ -300,7 +351,10 @@ class CreateAMAPIPolicies extends Command
         try {
             $serviceAccountPath = config('services.amapi.service_account_json');
 
+
             if (!file_exists($serviceAccountPath)) {
+                    dd("Le fichier est introuvable à cet endroit précis : " . $serviceAccountPath);
+
                 $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
                 return null;
             }
