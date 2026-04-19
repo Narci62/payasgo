@@ -35,7 +35,7 @@
             <div>
                 <label for="reference" class="block text-sm font-medium text-gray-700">Identifiant du client / paiement</label>
                 <input type="text" id="reference" name="reference"
-                       value="{{ old('reference') }}"
+                       value="{{ old('reference') ?? $imat ?? '' }}"
                        class="mt-1 w-full border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 p-2.5" style="border:1px solid black" required>
             </div>
 

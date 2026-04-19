@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\DeviceController;
-use App\Http\Controllers\Api\AMAPIWebhookController;
+use App\Http\Controllers\AMAPIWebhookController;
 use App\Http\Controllers\Api\DeviceStatusController;
 use App\Http\Controllers\Api\FinancingPlanController;
 use App\Http\Controllers\Api\FedapayWebhookController;

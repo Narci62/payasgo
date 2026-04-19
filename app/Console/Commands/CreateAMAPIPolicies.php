@@ -109,100 +109,14 @@ class CreateAMAPIPolicies extends Command
 
         return $policyId;
     }
-
-    private function getDefaultPolicyConfigs(): array
-    {
-        return [
-            // Appareil en mode kiosque avec votre application vitrine
-            'applications' => [
-                [
-                    'packageName' => 'com.trueline.pg', // À remplacer par votre package
-                    'installType' => 'FORCE_INSTALLED',
-                    'defaultPermissionPolicy' => 'GRANT',
-                    'lockTaskAllowed' => true, // Permet le mode kiosque
-                ],
-            ],
-
-            // Mode kiosque : seulement l'app vitrine accessible
-            'kioskCustomization' => [
-                'deviceSettings' => 'SETTINGS_ACCESS_ALLOWED',
-                'powerButtonActions' => 'POWER_BUTTON_AVAILABLE',
-                'statusBar' => 'NOTIFICATIONS_AND_SYSTEM_INFO_ENABLED',
-                'systemErrorWarnings' => 'ERROR_AND_WARNINGS_ENABLED',
-                'systemNavigation' => 'NAVIGATION_ENABLED',
-            ],
-
-            // Applications système autorisées
-            'systemUpdate' => [
-                'type' => 'AUTOMATIC',
-                'startMinutes' => 120, // 2h du matin
-                'endMinutes' => 300,   // 5h du matin
-            ],
-
-            // Restrictions minimales (appareil fonctionnel)
-            'bluetoothConfigDisabled' => false,
-            'cellBroadcastsConfigDisabled' => false,
-            'factoryResetDisabled' => true, // Empêcher factory reset
-            'keyguardDisabled' => false,
-            'statusBarDisabled' => false,
-            'wifiConfigDisabled' => false,
-
-            // Autoriser les appels, SMS, contacts
-            'smsDisabled' => false,
-            'outgoingCallsDisabled' => false,
-
-            // Sécurité
-            'screenCaptureDisabled' => false,
-            'cameraDisabled' => false,
-            'adjustVolumeDisabled' => false,
-
-            // Password requirements (optionnel)
-            'passwordRequirements' => [
-                'passwordMinimumLength' => 4,
-                'passwordQuality' => 'NUMERIC',
-            ],
-
-            // Network settings
-            'mobileNetworksConfigDisabled' => false,
-            'privateKeySelectionEnabled' => true,
-
-            // Compliance rules (vérifications)
-            'complianceRules' => [
-                [
-                    'nonComplianceDetailCondition' => [
-                        'settingName' => 'locationType',
-                        // 'comparisonOperator' et 'value' n'existent pas ici.
-                        // On utilise 'nonMatchingValue' pour déclencher la règle
-                        // si la valeur n'est pas celle attendue.
-                        'nonMatchingValue' => 'GPS_DISABLED',
-                    ],
-                    'disableApps' => false,
-                ],
-            ],
-
-            // Status reporting
-            'statusReportingSettings' => [
-                'applicationReportsEnabled' => true,
-                'deviceSettingsEnabled' => true,
-                'softwareInfoEnabled' => true,
-                'memoryInfoEnabled' => true,
-                'networkInfoEnabled' => true,
-                'displayInfoEnabled' => true,
-                'powerManagementEventsEnabled' => true,
-                'hardwareStatusEnabled' => true,
-                'systemPropertiesEnabled' => true,
-                'commonCriteriaModeEnabled' => false,
-            ],
-        ];
-    }
-
     private function getDefaultPolicyConfig(): array
     {
         return [
             'applications' => [
                 [
-                    'packageName' => 'com.trueline.pg',
-                    'installType' => 'FORCE_INSTALLED',
+                    'packageName' => 'com.trueline.mdm',
+                    'installType' => 'REQUIRED_FOR_SETUP',
+                    //'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                 ],
 
@@ -216,6 +130,19 @@ class CreateAMAPIPolicies extends Command
             "frpAdminEmails"  => [
                 "etstrueline@gmail.com"
             ],
+
+            // "complianceRules" => [
+            //     [
+            //         "nonComplianceDetailCondition" => [
+            //             "nonComplianceReason" => "NETWORK_INFO",
+            //         ],
+            //         "packageNamesToExempt" => [],
+            //         "actionAfterDays" => 14,
+            //         "blockAction" => [
+            //             "blockAfterDays" => 0,
+            //         ]
+            //     ]
+            // ],
 
             "safeBootDisabled"  => true,
             "debuggingFeaturesAllowed" => false,
@@ -235,7 +162,7 @@ class CreateAMAPIPolicies extends Command
         return [
             "applications" => [
                 [
-                    'packageName' => 'com.trueline.pg',
+                    'packageName' => 'com.trueline.mdm',
                     "installType" => "FORCE_INSTALLED",
                     "defaultRuntimePermissionsPolicy" => "GRANT"
                 ],
@@ -267,7 +194,7 @@ class CreateAMAPIPolicies extends Command
             // Application vitrine forcée (pour afficher message verrouillage)
             'applications' => [
                 [
-                    'packageName' => 'com.trueline.pg', // Votre app
+                    'packageName' => 'com.trueline.mdm', // Votre app
                     'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                     'lockTaskAllowed' => true,
