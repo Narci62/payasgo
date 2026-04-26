@@ -82,7 +82,7 @@ class Helper
         $amapi_device = AmapiDevice::where('device_id', $data->id)->first();
         $jsonString = json_encode($amapi_device->qr_code_data);
 
-        return QrCode::size(200)->generate($jsonString);
+        return QrCode::margin(2)->size(300)->generate($jsonString);
 
     }
 }
