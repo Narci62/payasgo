@@ -14,6 +14,9 @@ class ListDevices extends ListRecords
     {
         return [
             CreateAction::make(),
+
         ];
     }
+
+
 }

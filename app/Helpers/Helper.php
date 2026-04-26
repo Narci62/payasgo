@@ -2,9 +2,11 @@
 
 namespace App\Helpers;
 
+use App\Models\AmapiDevice;
 use Carbon\Carbon;
 use Google\Client as GoogleClient;
 use Illuminate\Support\Facades\Log;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Helper
 {
@@ -72,5 +74,15 @@ class Helper
                 return null;
             }
         });
+    }
+
+
+     public static function generateJsonQrCode($data): string
+    {
+        $amapi_device = AmapiDevice::where('device_id', $data->id)->first();
+        $jsonString = json_encode($amapi_device->qr_code_data);
+
+        return QrCode::size(200)->generate($jsonString);
+
     }
 }

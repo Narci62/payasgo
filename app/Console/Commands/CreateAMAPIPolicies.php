@@ -114,9 +114,9 @@ class CreateAMAPIPolicies extends Command
         return [
             'applications' => [
                 [
-                    'packageName' => 'com.trueline.mdm',
-                    'installType' => 'REQUIRED_FOR_SETUP',
-                    //'installType' => 'FORCE_INSTALLED',
+                   // 'packageName' => 'com.trueline.mdm',
+                    'packageName' => 'com.facebook.katana',
+                    'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                 ],
 
