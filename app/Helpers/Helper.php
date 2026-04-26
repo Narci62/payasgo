@@ -80,7 +80,7 @@ class Helper
      public static function generateJsonQrCode($data): string
     {
         $amapi_device = AmapiDevice::where('device_id', $data->id)->first();
-        $jsonString = json_encode($amapi_device->qr_code_data);
+        $jsonString = $amapi_device->qr_code_data;
 
         return QrCode::margin(2)->size(300)->generate($jsonString);
 
