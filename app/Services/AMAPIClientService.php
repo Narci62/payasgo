@@ -82,7 +82,12 @@ class AMAPIClientService
      */
     public function syncAMAPIDevices()
     {
-        $response = Http::withHeaders($this->getAuthHeaders())->post("{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices");
+        $response = Http::withHeaders($this->getAuthHeaders())->get("{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices");
+
+        if ($response->failed()) {
+            Log::error("AMAPI Sync Failed", ['response' => $response->body()]);
+            return;
+        }
 
         $googleDevices = $response->json()['devices'] ?? [];
 
@@ -97,12 +102,12 @@ class AMAPIClientService
             if ($laravelId) {
                 // Mise à jour de votre base de données
                 // utilise la mise en cache pour éviter les mises à jour répétées
-                cache()->remember("amapi_device_sync_{$laravelId}", 3600, function () use ($laravelId, $deviceId) {
-                    Device::where('id', $laravelId)->update(['amapi_device_id' => $deviceId]);
-                });
+                // cache()->remember("amapi_device_sync_{$laravelId}", 3600, function () use ($laravelId, $deviceId) {
+                //     AmapiDevice::where('device_id', $laravelId)->update(['amapi_device_id' => $deviceId]);
+                // });
 
-                Device::where('id', $laravelId)
-                    ->whereNull('amapi_device_id')
+                AmapiDevice::where('device_id', $laravelId)
+                    ->Where('amapi_device_id', '!=', $deviceId)
                     ->update(['amapi_device_id' => $deviceId]);
             }
         }
@@ -323,7 +328,7 @@ class AMAPIClientService
     {
         //return Helper::getAccessToken() ?? '';
 
-          try {
+        try {
             $serviceAccountPath = config('services.amapi.service_account_json');
 
 
