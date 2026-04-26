@@ -44,7 +44,7 @@ class Helper
     }
 
     /***
-     * Format Date to yyy-mm-dd
+     * Format Date to yyy-mm-dd ()
      */
     public static function formatDate($date): string
     {
