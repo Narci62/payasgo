@@ -77,7 +77,7 @@ class CreateFinancingPlan extends CreateRecord
 
         // create enrollment token for google amapi enrollment
         $amapi_enrollment_token = (new AMAPIClientService())->generateProvisioningQRCode($financing_plan->device);
-        dd($amapi_enrollment_token);
+       // dd($amapi_enrollment_token);
 
 
         // save payment histories
