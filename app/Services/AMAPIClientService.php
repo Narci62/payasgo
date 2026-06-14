@@ -57,6 +57,7 @@ class AMAPIClientService
                     'amapi_enterprise_id' => $this->enterpriseId,
                     'enrollment_token' => $enrollmentToken,
                     'qr_code_data' => $qrCode,
+                    'amapi_policy_id' => 'default_policy',
                     'amapi_state' => 'PROVISIONING'
                 ]
             );
@@ -108,7 +109,7 @@ class AMAPIClientService
 
                 AmapiDevice::where('device_id', $laravelId)
                     ->Where('amapi_device_id', '!=', $deviceId)
-                    ->update(['amapi_device_id' => $deviceId]);
+                    ->update(['amapi_device_id' => $deviceId, 'amapi_state' => 'ACTIVE', 'last_amapi_sync_at' => now()]);
             }
         }
     }
@@ -152,6 +153,7 @@ class AMAPIClientService
                 // Mettre à jour l'appareil AMAPI
                 $amapiDevice->update([
                     'amapi_state' => 'DISABLED',
+                    'amapi_policy_id' => 'locked_policy',
                     'last_command_sent_at' => now(),
                     'last_command_type' => 'LOCK',
                     'last_command_status' => 'SUCCESS'
@@ -231,6 +233,7 @@ class AMAPIClientService
             if ($response->successful()) {
                 $amapiDevice->update([
                     'amapi_state' => 'ACTIVE',
+                    'amapi_policy_id' => 'default_policy',
                     'last_command_sent_at' => now(),
                     'last_command_type' => 'UNLOCK',
                     'last_command_status' => 'SUCCESS'

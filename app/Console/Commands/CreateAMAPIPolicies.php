@@ -39,13 +39,13 @@ class CreateAMAPIPolicies extends Command
                 $this->info("✅ default_policy créée : {$defaultPolicyId}");
             }
 
-            // 2. Créer la politique de verrouillage
-            // $this->info('📝 Création de locked_policy...');
-            // $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
+            //2. Créer la politique de verrouillage
+            $this->info('📝 Création de locked_policy...');
+            $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
 
-            // if ($lockedPolicyId) {
-            //     $this->info("✅ locked_policy créée : {$lockedPolicyId}");
-            // }
+            if ($lockedPolicyId) {
+                $this->info("✅ locked_policy créée : {$lockedPolicyId}");
+            }
 
             $this->newLine();
             $this->info('✅ Politiques créées avec succès !');
@@ -194,12 +194,13 @@ class CreateAMAPIPolicies extends Command
             // Application vitrine forcée (pour afficher message verrouillage)
             'applications' => [
                 [
-                    'packageName' => 'com.trueline.mdm', // Votre app
-                    'installType' => 'FORCE_INSTALLED',
-                    'defaultPermissionPolicy' => 'GRANT',
-                    'lockTaskAllowed' => true,
+                    "packageName"=> "com.facebook.katana",
+                    "installType"=> "KIOSK",
+                    "defaultRuntimePermissionsPolicy"=> "GRANT"
                 ],
             ],
+
+            /*
 
             // Mode kiosque STRICT : uniquement app vitrine
             'kioskCustomization' => [
@@ -214,12 +215,11 @@ class CreateAMAPIPolicies extends Command
             'bluetoothConfigDisabled' => true,     // Bloque Bluetooth
             'cellBroadcastsConfigDisabled' => true,
             'factoryResetDisabled' => true,        // Bloque factory reset
-            'keyguardDisabled' => true,            // Désactive écran de verrouillage natif
-            'statusBarDisabled' => true,           // Cache barre de statut
-            'wifiConfigDisabled' => true,          // Bloque config WiFi
+            // 'keyguardDisabled' => true,            // Désactive écran de verrouillage natif
+            // 'statusBarDisabled' => true,           // Cache barre de statut
+            // 'wifiConfigDisabled' => true,          // Bloque config WiFi
 
             // Bloquer communications
-            'smsDisabled' => true,                 // Bloque SMS
             'outgoingCallsDisabled' => true,       // Bloque appels sortants
             'outgoingBeamDisabled' => true,        // Bloque NFC/Beam
 
@@ -240,19 +240,6 @@ class CreateAMAPIPolicies extends Command
             'modifyAccountsDisabled' => true,
             'unmuteMicrophoneDisabled' => true,
 
-            // Message de verrouillage (affiché sur écran)
-            'deviceOwnerLockScreenInfo' => [
-                'localizedMessages' => [
-                    'fr' => [
-                        'title' => '🔒 Téléphone suspendu',
-                        'message' => "Votre versement est en retard.\n\nEffectuez votre paiement pour débloquer l'appareil.\n\nContact : +229 01 76 65 65",
-                    ],
-                    'default' => [
-                        'title' => '🔒 Device Locked',
-                        'message' => "Payment overdue.\n\nPlease pay to unlock.\n\nContact: +229 01 76 65 65",
-                    ],
-                ],
-            ],
 
             // Reporting (même verrouillé, on veut les infos)
             'statusReportingSettings' => [
@@ -270,6 +257,8 @@ class CreateAMAPIPolicies extends Command
                 'startMinutes' => 120,
                 'endMinutes' => 300,
             ],
+
+            */
         ];
     }
 

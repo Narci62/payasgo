@@ -16,6 +16,11 @@ Schedule::command('app:send-payment-reminders')->dailyAt('09:00');
 // Rappels de paiement (existant)
 Schedule::command('app:send-payment-reminders')->dailyAt('09:00');
 
+// sychronisation des nouveaux appareils avec AMAPI
+Schedule::command('devices:sync-amapi-devices')->hourly()->withoutOverlapping()->onFailure(function () {
+    Log::error('Device sync with AMAPI failed');
+});
+
 // ========================================
 // NOUVEAU : Vérification automatique des verrouillages
 // ========================================
