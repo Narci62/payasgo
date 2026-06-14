@@ -178,7 +178,12 @@ class AMAPIClientService
                 return true;
             }
 
-           // throw new Exception($response->body());
+            throw new Exception($response->body());
+            Log::error('AMAPI lock command failed', [
+                'device_id' => $device->id,
+                'device_amapi_id' => $amapiDevice->amapi_device_id,
+                'response' => $response->body()
+            ]);
         } catch (Exception $e) {
             // Marquer comme échec
             $lockHistory->update([
