@@ -33,11 +33,11 @@ class CreateAMAPIPolicies extends Command
 
             // 1. Créer la politique par défaut (appareil actif)
             $this->info('📝 Création de default_policy...');
-            $defaultPolicyId = $this->createDefaultPolicy($accessToken, $enterpriseId);
+          //  $defaultPolicyId = $this->createDefaultPolicy($accessToken, $enterpriseId);
 
-            if ($defaultPolicyId) {
-                $this->info("✅ default_policy créée : {$defaultPolicyId}");
-            }
+           // if ($defaultPolicyId) {
+             //   $this->info("✅ default_policy créée : {$defaultPolicyId}");
+            //}
 
             //2. Créer la politique de verrouillage
             $this->info('📝 Création de locked_policy...');
@@ -52,7 +52,7 @@ class CreateAMAPIPolicies extends Command
             $this->newLine();
             $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
             $this->newLine();
-            $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
+          //  $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
             // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
             $this->newLine();
 
@@ -93,14 +93,17 @@ class CreateAMAPIPolicies extends Command
     private function createLockedPolicy(string $accessToken, string $enterpriseId): ?string
     {
         $policyId = 'locked_policy';
-        $url = "https://androidmanagement.googleapis.com/v1/{$enterpriseId}/policies/{$policyId}";
+        $enterpriseId = ltrim($enterpriseId, '/');
+        $name = "enterprises/{$enterpriseId}/policies/{$policyId}";
+        $url = "https://androidmanagement.googleapis.com/v1/{$name}";
+
 
         $policy = $this->getLockedPolicyConfig();
 
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$accessToken}",
             'Content-Type' => 'application/json',
-        ])->put($url, $policy);
+        ])->patch($url, $policy);
 
         if ($response->failed()) {
             $this->error('Échec création locked_policy : ' . $response->body());
@@ -122,6 +125,12 @@ class CreateAMAPIPolicies extends Command
 
                 [
                     'packageName' => 'com.android.vending',
+                    'installType' => 'AVAILABLE'
+                ],
+
+                [
+                    // whatsapp
+                    'packageName' => 'com.whatsapp',
                     'installType' => 'AVAILABLE'
                 ]
             ],
@@ -196,7 +205,7 @@ class CreateAMAPIPolicies extends Command
                 [
                     "packageName"=> "com.facebook.katana",
                     "installType"=> "KIOSK",
-                    "defaultRuntimePermissionsPolicy"=> "GRANT"
+                    "defaultPermissionPolicy"=> "GRANT"
                 ],
             ],
 
