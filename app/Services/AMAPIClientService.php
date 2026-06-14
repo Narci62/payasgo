@@ -178,7 +178,7 @@ class AMAPIClientService
                 return true;
             }
 
-            throw new Exception($response->body());
+           // throw new Exception($response->body());
         } catch (Exception $e) {
             // Marquer comme échec
             $lockHistory->update([
