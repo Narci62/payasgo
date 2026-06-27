@@ -90,29 +90,41 @@ class AMAPIClientService
             return;
         }
 
-        $googleDevices = $response->json()['devices'] ?? [];
+        Log::info("AMAPI Sync Response", ['response' => $response->body()]);
+
+        // 1. On récupère la réponse brute
+        $data = $response->json();
+
+        // 2. On extrait et décode la chaîne JSON imbriquée dans la clé 'response'
+        $innerJson = isset($data['response']) ? json_decode($data['response'], true) : [];
+        $googleDevices = $innerJson['devices'] ?? [];
 
         foreach ($googleDevices as $googleDevice) {
-            // On extrait le deviceId du champ 'name' (format: enterprises/.../devices/DEVICE_ID)
             $fullPath = $googleDevice['name'];
             $deviceId = basename($fullPath);
 
-            // On récupère l'ID Laravel stocké dans 'enrollmentTokenData'
-            $laravelId = $googleDevice['enrollmentTokenData']['device_id'] ?? null;
+            // 3. On extrait la string enrollmentTokenData
+            $tokenDataString = $googleDevice['enrollmentTokenData'] ?? null;
+            $laravelId = null;
+
+            // 4. On décode la string JSON pour récupérer le vrai tableau
+            if ($tokenDataString) {
+                $tokenData = json_decode($tokenDataString, true);
+                $laravelId = $tokenData['device_id'] ?? null;
+            }
 
             if ($laravelId) {
-                // Mise à jour de votre base de données
-                // utilise la mise en cache pour éviter les mises à jour répétées
-                // cache()->remember("amapi_device_sync_{$laravelId}", 3600, function () use ($laravelId, $deviceId) {
-                //     AmapiDevice::where('device_id', $laravelId)->update(['amapi_device_id' => $deviceId]);
-                // });
-
                 AmapiDevice::where('device_id', $laravelId)
-                    ->Where('amapi_device_id', '!=', $deviceId)
-                    ->update(['amapi_device_id' => $deviceId, 'amapi_state' => 'ACTIVE', 'last_amapi_sync_at' => now()]);
+                    ->where('amapi_device_id', '!=', $deviceId) // Attention au 'W' majuscule corrigé ici en minuscule 'where'
+                    ->update([
+                        'amapi_device_id' => $deviceId,
+                        'amapi_state' => 'ACTIVE',
+                        'last_amapi_sync_at' => now()
+                    ]);
             }
         }
     }
+
 
     /**
      * Verrouille un appareil via AMAPI
@@ -178,12 +190,13 @@ class AMAPIClientService
                 return true;
             }
 
-            throw new Exception($response->body());
             Log::error('AMAPI lock command failed', [
                 'device_id' => $device->id,
                 'device_amapi_id' => $amapiDevice->amapi_device_id,
                 'response' => $response->body()
             ]);
+
+            throw new Exception($response->body());
         } catch (Exception $e) {
             // Marquer comme échec
             $lockHistory->update([
