@@ -83,45 +83,65 @@ class AMAPIClientService
      */
     public function syncAMAPIDevices()
     {
-        $response = Http::withHeaders($this->getAuthHeaders())->get("{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices");
+        $response = Http::withHeaders($this->getAuthHeaders())
+            ->get("{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices");
 
         if ($response->failed()) {
-            Log::error("AMAPI Sync Failed", ['response' => $response->body()]);
+            Log::error('AMAPI Sync Failed', [
+                'status' => $response->status(),
+                'response' => $response->body(),
+            ]);
             return;
         }
 
-        Log::info("AMAPI Sync Response", ['response' => $response->body()]);
+        Log::info('AMAPI Sync Response', [
+            'response' => $response->body(),
+        ]);
 
-        // 1. On récupère la réponse brute
-        $data = $response->json();
+        $googleDevices = $response->json('devices', []);
 
-        // 2. On extrait et décode la chaîne JSON imbriquée dans la clé 'response'
-        $innerJson = isset($data['response']) ? json_decode($data['response'], true) : [];
-        $googleDevices = $innerJson['devices'] ?? [];
+        Log::info('AMAPI Devices Count', [
+            'count' => count($googleDevices),
+        ]);
 
         foreach ($googleDevices as $googleDevice) {
-            $fullPath = $googleDevice['name'];
-            $deviceId = basename($fullPath);
 
-            // 3. On extrait la string enrollmentTokenData
-            $tokenDataString = $googleDevice['enrollmentTokenData'] ?? null;
-            $laravelId = null;
+            // ID AMAPI (ex: enterprises/.../devices/320283ccf89728c8)
+            $amapiDeviceId = basename($googleDevice['name']);
 
-            // 4. On décode la string JSON pour récupérer le vrai tableau
-            if ($tokenDataString) {
-                $tokenData = json_decode($tokenDataString, true);
-                $laravelId = $tokenData['device_id'] ?? null;
+            // Décodage du enrollmentTokenData
+            $tokenData = json_decode($googleDevice['enrollmentTokenData'] ?? '{}', true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('AMAPI enrollmentTokenData invalide', [
+                    'device' => $amapiDeviceId,
+                    'value' => $googleDevice['enrollmentTokenData'] ?? null,
+                ]);
+                continue;
             }
 
-            if ($laravelId) {
-                AmapiDevice::where('device_id', $laravelId)
-                    ->where('amapi_device_id', '!=', $deviceId) // Attention au 'W' majuscule corrigé ici en minuscule 'where'
-                    ->update([
-                        'amapi_device_id' => $deviceId,
-                        'amapi_state' => 'ACTIVE',
-                        'last_amapi_sync_at' => now()
-                    ]);
+            $laravelId = $tokenData['device_id'] ?? null;
+
+            if (!$laravelId) {
+                Log::warning('Aucun device_id trouvé dans enrollmentTokenData', [
+                    'device' => $amapiDeviceId,
+                ]);
+                continue;
             }
+
+            Log::info('Syncing AMAPI Device', [
+                'laravel_id' => $laravelId,
+                'amapi_device_id' => $amapiDeviceId,
+                'state' => $googleDevice['state'] ?? null,
+            ]);
+
+            AmapiDevice::where('device_id', $laravelId)
+                ->where('amapi_device_id', '!=', $amapiDeviceId)
+                ->update([
+                    'amapi_device_id'      => $amapiDeviceId,
+                    'amapi_state'          => $googleDevice['state'] ?? null,
+                    'last_amapi_sync_at'   => now(),
+                ]);
         }
     }
 
