@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Financing_plan extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = [];
 
     public function payments() : HasMany
@@ -24,4 +27,24 @@ class Financing_plan extends Model
     {
         return $this->belongsTo(Device::class);
     }
+
+    // get "soldé" for paid_in_full status attribute
+    public function getStatusAttribute($value)
+    {
+        switch ($value) {
+            case 'paid_in_full':
+                $value = 'soldé';
+                break;
+            case 'active':
+                $value = 'actif';
+                break;
+
+            default:
+                $value = "En attente";
+                break;
+        }
+
+       return $value;
+    }
 }
+

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,9 +29,9 @@ class DeviceStatusResource extends JsonResource
         }
 
         // Vérifier si la date du période de grâce est dépassée
-        if (now()->greaterThan($financingPlan->grace_period_ends_at)) {
-            return $this->formatPaymentDueGracePeriodResponse($financingPlan);
-        }
+        // if (now()->greaterThan($financingPlan->grace_period_ends_at)) {
+        //     return $this->formatPaymentDueGracePeriodResponse($financingPlan);
+        // }
 
         // Si aucune des conditions ci-dessus n'est remplie, l'appareil est actif.
         return $this->formatActiveResponse($financingPlan);
@@ -41,7 +42,7 @@ class DeviceStatusResource extends JsonResource
      */
     protected function formatActiveResponse($financingPlan): array
     {
-        $expiresAt = $financingPlan?->next_payment_due_date;
+        $expiresAt = Carbon::parse($financingPlan?->next_payment_due_date)->format('d-m-Y H:i:s');
         $gracePeriodEndsAt = $financingPlan?->grace_period_ends_at;
 
         return [
@@ -53,9 +54,9 @@ class DeviceStatusResource extends JsonResource
                 'next_offline_unlock_code' => $this->financingPlan?->next_offline_unlock_code,
                 'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
                 'amount_remaining' => $this->financingPlan?->remaining_balance,
-                'payment_instructions' => '*880*2*3876*'. $this->financingPlan?->installment_amount .'*30293*code#',
+                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
                 'identifiant_client' => "Référence client : " . $this->client?->reference,
-
+                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
 
             ],
             'config' => [
@@ -77,10 +78,12 @@ class DeviceStatusResource extends JsonResource
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard. Téléphone suspendu',
                 'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => '*880*2*38765*'. $this->financingPlan?->installment_amount .'*302938*code#',
+                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
                 'support_phone_number' => '+229 01 76 65 65',
                 'identifiant_client' => "Référence client : " . $this->client?->reference,
+                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
+
             ],
             'config' => [
                 'check_interval_minutes' => 15, // Intervalle plus court pour débloquer rapidement
@@ -101,10 +104,11 @@ class DeviceStatusResource extends JsonResource
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard et vous avez dépassé la période de grâce. Veuillez régler votre facture pour débloquer votre appareil.',
                 'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => '*880*2*3876*'. $this->financingPlan?->installment_amount .'*302938*code#',
+                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
                 'support_phone_number' => '+229 01 76 65 65',
                 'identifiant_client' => "Référence client : " . $this->client?->reference,
+                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
 
             ],
             'config' => [

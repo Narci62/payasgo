@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamp("used_at")->nullable()->comment("Date à laquelle le token a été utilisé.");
             $table->timestamp("expires_at")->comment("La date et l'heure d'expiration du jeton.");
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

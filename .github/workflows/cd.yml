@@ -46,7 +46,7 @@ jobs:
             **/storage/logs/*
             **/vendor/*
             **/.env
-            
+
 
 
       # 5. Exécuter artisan optimizations (via FTP hack)

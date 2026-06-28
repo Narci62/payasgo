@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DeviceStatusController;
 use App\Http\Controllers\Api\FedapayWebhookController;
+use App\Http\Controllers\Api\FinancingPlanController;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,8 @@ Route::get('/payasgo', function(){
 //registration client
 Route::post("/client/register", [ClientController::class, "store"]);
 
+//create financing plan
+Route::post("/client/financing-plan", [FinancingPlanController::class, "store"]);
 
 // registration device
 Route::post("/device/register", [DeviceController::class, "store"]);
@@ -35,3 +38,4 @@ Route::middleware('auth:device-api', 'device.auth')->prefix('device')->group(fun
 
 // payment by fedepay
 Route::post("/webhooks/fedapay", [FedapayWebhookController::class, "handleWebhook"]);
+Route::post('/webhook', [FedapayWebhookController::class, 'webhook'])->name('fedapay.webhook');

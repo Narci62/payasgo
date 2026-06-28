@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Financing_plan;
 use Illuminate\Http\Request;
+use App\Models\Financing_plan;
+use App\Services\PaymentService;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Services\FinancingPlanService;
+use App\Http\Resources\ClientRessource;
+use App\Http\Resources\FinancingPlanResource;
 
 class FinancingPlanController extends Controller
 {
+    public function __construct(private FinancingPlanService $financingPlanService) {}
     /**
      * Display a listing of the resource.
      */
@@ -29,7 +35,32 @@ class FinancingPlanController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validated([
+            // validation rules here
+        ]);
+
+        $financing_plan = DB::transaction(function () use ($validated) {
+
+            //  $registration_token = app("App\Services\RegistrationTokenService")->createToken(['client_id' => $validated['client_id']]);
+
+            $financing_plan = $this->financingPlanService->createFinancingPlan($validated);
+
+            // save payment histories
+            (new PaymentService())->store([
+                'financing_plan_id' => $financing_plan->id,
+                'amount' => $financing_plan->down_payment,
+                'method' => "manual",
+                'transaction_id' => uniqid('txn'),
+                'status' => 'completed',
+                'paid_at' => now(),
+            ]);
+
+
+            return $financing_plan;
+        });
+
+
+        return (new FinancingPlanResource($financing_plan));
     }
 
     /**

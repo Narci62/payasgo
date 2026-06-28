@@ -22,7 +22,7 @@ class ClientService {
         ]);
     }
 
-    private function generateIdentifiantClient(): string{
+    public function generateIdentifiantClient(): string{
         do {
             $code = Helper::generateUniquePublicIdentifier();
         } while (Client::where("reference", $code)->exists());

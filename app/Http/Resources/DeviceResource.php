@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,13 @@ class DeviceResource extends JsonResource
             ],
             'config' => [
                 'check_interval_minutes' => 60,
+            ],
+            'user' => [
+                'client_name' => $this->client?->full_name,
+                'payment_date' => Carbon::parse($this->created_at)->format('d-m-Y'),
+                'total_amount' => $this->financingPlan?->total_price,
+                'phone_name' => $this->device_name,
+                'admin_note' => $this->notes
             ]
         ];
     }

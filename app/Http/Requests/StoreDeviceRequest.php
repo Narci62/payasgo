@@ -33,8 +33,10 @@ class StoreDeviceRequest extends FormRequest
             'registration_token' => ['required', 'string'],
             'fcm_token' => ['nullable', 'string'],
             'device_info' => ['required', 'array'],
-            'device_info.serial_number' => ['required', 'string'],
-            'device_info.android_version' => ['required', 'string'],
+            'device_info.device_id' => ['required', 'string'],
+            'device_info.device_model' => ['required', 'string'],
+            'device_info.device_brand' => ['required', 'string'],
+            'device_info.device_name' => ['required', 'string'],
             'device_info.imei' => ['nullable', 'string'],
         ];
     }
