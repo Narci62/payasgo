@@ -9,13 +9,19 @@ class DeviceService {
     {
         return Device::create([
             'client_id' => $data['client_id'],
+            'phone_id' => $data['phone_id'] ?? null,
             'fcm_token' => $data['fcm_token'] ?? null,
-            'device_id' => $data['device_info']['device_id'],
-            'device_name' => $data['device_info']['device_name'],
-            'device_brand' => $data['device_info']['device_brand'] ?? null,
-            'device_model' => $data['device_info']['device_model'] ?? null,
+            'device_id' => $data['device_id'],
+            'device_name' => $data['device_name'],
+            'device_brand' => $data['device_brand'] ?? null,
+            'device_model' => $data['device_model'] ?? null,
             'status' => 'active',
             'last_seen_at' => now(),
         ]);
     }
+
+    /**
+     *  Create device in google amapi
+     */
+
 }

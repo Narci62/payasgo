@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
+use App\Services\DeviceMonitoringService;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Device extends Model
 {
@@ -21,6 +22,11 @@ class Device extends Model
     public function client() : BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function phone() : BelongsTo
+    {
+        return $this->belongsTo(Phone::class);
     }
 
     public function financingPlan() : HasOne
@@ -53,4 +59,33 @@ class Device extends Model
         //return $this->fcm_token;
         return $this->getDeviceTokens();
     }
+
+    public function amapiDevice(): HasOne
+    {
+        return $this->hasOne(AmapiDevice::class);
+    }
+
+    public function lockHistory()
+    {
+        return $this->hasMany(DeviceLockHistory::class);
+    }
+
+    /**
+     * Vérifie si l'appareil doit être verrouillé (logique métier)
+     */
+    public function shouldBeLocked(): bool
+    {
+        $monitoringService = app(DeviceMonitoringService::class);
+        return $monitoringService->shouldDeviceBeLocked($this);
+    }
+
+    /**
+     * Vérifie si l'appareil est actuellement verrouillé
+     */
+    public function isLocked(): bool
+    {
+        return $this->status === 'locked' ||
+               $this->amapiDevice?->amapi_state === 'DISABLED';
+    }
+
 }

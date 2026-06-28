@@ -39,7 +39,7 @@ class ClientController extends Controller
     public function store(StoreClientRequest $request)
     {
         return response()->json(['message' => 'Store method called']);
-        
+
         $validated = $request->validated();
 
        // dd($validated);
@@ -65,7 +65,7 @@ class ClientController extends Controller
 
     public function getUserByDeviceToken(Request $request)
     {
-        $identifiant_client = $request->input("identifiant_client");
+        $identifiant_client = $request->input("matricule");
 
         $client = $this->clientService->getClientByDeviceToken($identifiant_client);
 

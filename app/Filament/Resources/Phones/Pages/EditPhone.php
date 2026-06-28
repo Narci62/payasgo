@@ -16,4 +16,10 @@ class EditPhone extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    // redirect to the list of phones after saving the record
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

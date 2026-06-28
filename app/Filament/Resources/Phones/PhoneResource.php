@@ -2,28 +2,30 @@
 
 namespace App\Filament\Resources\Phones;
 
-use BackedEnum;
-use App\Models\Phone;
-use Filament\Tables\Table;
-use Filament\Schemas\Schema;
-use Filament\Actions\EditAction;
-use Filament\Resources\Resource;
-use Filament\Actions\DeleteAction;
-use Filament\Support\Icons\Heroicon;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Form;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Filters\SelectFilter;
+use App\Filament\Resources\FinancingPlans\FinancingPlanResource;
+use App\Filament\Resources\Phones\Pages\CreatePhone;
 use App\Filament\Resources\Phones\Pages\EditPhone;
 use App\Filament\Resources\Phones\Pages\ListPhones;
-use App\Filament\Resources\Phones\Pages\CreatePhone;
 use App\Filament\Resources\Phones\Schemas\PhoneForm;
 use App\Filament\Resources\Phones\Tables\PhonesTable;
+use App\Models\Phone;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class PhoneResource extends Resource
 {
@@ -128,6 +130,15 @@ class PhoneResource extends Resource
             ->actions([
                 EditAction::make(),
               //  DeleteAction::make(),
+              // add action for sale who open a form to register the sale contract in another resource with the phone id
+              //verify if the phone quantity is greater than 0 before allowing the sale action
+              
+              Action::make('sale')
+                    ->label('Vendre')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->url(fn (Phone $record) => FinancingPlanResource::getUrl('create', ['phone_id' => $record->id])),
+                 //   ->url(fn (Phone $record) => route('filament.resources.financing_plan.create', ['phone_id' => $record->id])),
+
             ])
             ->bulkActions([
              //   DeleteBulkAction::make(),

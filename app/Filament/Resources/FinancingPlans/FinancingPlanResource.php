@@ -55,8 +55,8 @@ class FinancingPlanResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Nouvelle Achat')
-                    ->description('Informations générales sur l\'achat.')
+                Section::make('Nouveau Contrat')
+                    ->description('Informations générales sur le contrat.')
                     ->schema([
                         Select::make('client_id')
                             ->label('Client')
@@ -66,8 +66,22 @@ class FinancingPlanResource extends Resource
                             ->searchable()
                             ->required(),
 
+                        // show phone brand and model in select options and use phone_id as value
+                        // select phone id in get url
+
+                        Select::make('phone_id')
+                            ->label('Téléphone')
+                            ->options(
+                                fn() => \App\Models\Phone::all()->mapWithKeys(function ($phone) {
+                                    return [$phone->id => "{$phone->brand} - {$phone->model}"];
+                                })
+                            )
+                            ->default(fn() => request()->get('phone_id'))
+                            ->searchable()
+                            ->required(),
+
                         TextInput::make('total_price')
-                            ->label('Prix total')
+                            ->label('Prix Cash')
                             ->numeric()
                             ->prefix('CFA')
                             ->required(),
@@ -89,6 +103,8 @@ class FinancingPlanResource extends Resource
                             ->integer()
                             ->required(),
 
+                        // afiche en label le prix total calculé à partir du prix cash,
+
                     ])->columns(2), // 2 colonnes pour cette section
 
             ]);
@@ -102,13 +118,13 @@ class FinancingPlanResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('registrationToken.client.full_name')
-                ->label('Client')
-                ->sortable()
-                ->searchable()
-                //link to client resource
-                ->url(fn (Financing_plan $record): string =>
+                    ->label('Client')
+                    ->sortable()
+                    ->searchable()
+                    //link to client resource
+                    ->url(fn(Financing_plan $record): string =>
                     ClientResource::getUrl('edit', ['record' => $record->registrationToken->client->id]))
-                ->default('N/A'),
+                    ->default('N/A'),
 
                 TextColumn::make('device.device_name')
                     ->label('Appareil')
@@ -198,7 +214,7 @@ class FinancingPlanResource extends Resource
                         })
                         ->modalWidth('lg')
                         ->modalHeading('Historique des paiements')
-                        ->modalContent(fn (Financing_plan $record) => view('filament.resources.financing-plans.view-payments', [
+                        ->modalContent(fn(Financing_plan $record) => view('filament.resources.financing-plans.view-payments', [
                             'payments' => $record->payments,
                         ])),
 
@@ -209,12 +225,11 @@ class FinancingPlanResource extends Resource
                         ->icon('heroicon-o-currency-dollar')
                         ->action(function (Financing_plan $record, array $data): void {
                             $financingPlanService = new FinancingPlanService();
-                            $payments = $financingPlanService->savePayment($record,$data['amount'], 'manual', uniqid("txn-"));
+                            $payments = $financingPlanService->savePayment($record, $data['amount'], 'manual', uniqid("txn-"));
                             Notification::make()
                                 ->title('Paiement ajouté avec succès.')
                                 ->success()
                                 ->send();
-
                         })
                         ->form([
                             TextInput::make('amount')
@@ -222,8 +237,8 @@ class FinancingPlanResource extends Resource
                                 ->numeric()
                                 ->prefix('CFA')
                                 // min is installment amount
-                                ->minValue(fn (Financing_plan $record) => $record->installment_amount)
-                                ->default(fn (Financing_plan $record) => $record->installment_amount)
+                                ->minValue(fn(Financing_plan $record) => $record->installment_amount)
+                                ->default(fn(Financing_plan $record) => $record->installment_amount)
                                 ->required(),
                         ]),
 

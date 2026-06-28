@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreDeviceRequest;
-use App\Http\Requests\UpdateDeviceRequest;
-use App\Http\Resources\DeviceResource;
 use App\Models\Device;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\DeviceResource;
+use App\Http\Requests\StoreDeviceRequest;
+use App\Http\Requests\UpdateDeviceRequest;
+use Illuminate\Support\Facades\Auth;
 
 class DeviceController extends Controller
 {
@@ -68,6 +69,15 @@ class DeviceController extends Controller
         return (new DeviceResource($device))->additional(['token' => $token]);
     }
 
+    public function userProfile(Request $request)
+    {
+        $device =$request->user();
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+        return new DeviceResource($device);
+    }
+
     /**
      * Display the specified resource.
      */
@@ -103,17 +113,26 @@ class DeviceController extends Controller
 
     public function refresh(Request $request)
     {
-        $device = $request->user();
-        $device->update(['last_activity_at' => now()]);
+        $device = Device::whereHas('client', function ($query) use ($request) {
+            $query->where('reference', $request->input('matricule'))->orderBy('created_at', 'desc');
+        })->first();
+
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+
+        //   $device->update(['last_activity_at' => now()]);
 
         // Révoquer l'ancien token et en créer un nouveau
-        $request->user()->currentAccessToken()->delete();
+        //  $request->user()->currentAccessToken()->delete();
         $token = $device->createToken('device-token', ['device:*'])->plainTextToken;
 
-        return response()->json([
-            'device' => $device,
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+        // return response()->json([
+        //     'device' => $device,
+        //     'token' => $token,
+        //     'token_type' => 'Bearer',
+        // ]);
+
+        return (new DeviceResource($device))->additional(['token' => $token]);
     }
 }

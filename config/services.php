@@ -50,5 +50,24 @@ return [
         'webhook_signature_key' => env('FEDAPAY_WEBHOOK_SIGNATURE_SANDBOX_KEY'),
     ],
 
+    'amapi' => [
+        'base_url' => env('AMAPI_BASE_URL', 'https://androidmanagement.googleapis.com/v1'),
+        'project_id' => env('AMAPI_PROJECT_ID'),
+        'enterprise_id' => env('AMAPI_ENTERPRISE_ID'),
+        'service_account_key' => env('AMAPI_SERVICE_ACCOUNT_KEY'),
+        //path to service account json in storage/app/public/
+        'service_account_json' => storage_path(env('AMAPI_SERVICE_ACCOUNT_JSON', 'app/public/trueline-payguard-amapi-556ed97a2e37.json')), // Chemin vers le fichier JSON
+
+        // Politiques prédéfinies
+        'policies' => [
+            'default' => env('AMAPI_POLICY_DEFAULT', 'default_policy'),
+            'locked' => env('AMAPI_POLICY_LOCKED', 'locked_policy'),
+        ],
+
+        // Webhooks
+        'webhook_url' => env('AMAPI_WEBHOOK_URL'),
+        'webhook_secret' => env('AMAPI_WEBHOOK_SECRET'),
+    ],
+
 
 ];

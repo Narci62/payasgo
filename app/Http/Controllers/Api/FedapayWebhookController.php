@@ -28,9 +28,10 @@ class FedapayWebhookController extends Controller
         $this->paymentService = new PaymentService();
     }
 
-    public function showForm()
+    public function showForm(Request $request)
     {
-        return view('payment.form');
+        $imat = $request->query('imat');
+        return view('payment.form', compact('imat'));
     }
 
     public function processPayment(Request $request)
