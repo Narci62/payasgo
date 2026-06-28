@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\AMAPICallbackController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FedapayWebhookController;
+use App\Http\Controllers\ManagedPlayController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect("/admin");
@@ -24,4 +25,7 @@ Route::get('/generate-signup-url', [AMAPICallbackController::class, 'generateSig
 Route::get('/information/{imat}', [UserController::class, 'show']);
 
 
-
+Route::middleware(['auth'])->prefix('admin/mdm')->group(function () {
+    // C'est cette ligne qui crée l'URL exacte attendue par Google
+    Route::get('apps', [ManagedPlayController::class, 'getIframeUrl'])->name('admin.mdm.apps');
+});

@@ -67,7 +67,7 @@ class DevicesTable
                     ->color('gray')
                     ->modalHeading('Historique de verrouillage')
                     ->modalContent(fn(Device $record) => view('filament.devices.lock-history', [
-                        'history' => $record->lockHistory()->latest()->limit(20)->get()
+                        'lockHistory' => $record->lockHistory()->latest()->limit(20)->get()
                     ]))
                     ->modalWidth('3xl'),
                 ActionGroup::make([
@@ -180,34 +180,34 @@ class DevicesTable
                         }),
 
                     // Générer un nouveau QR Code
-                    Action::make('regenerate_qr')
-                        ->label('Régénérer QR Code')
-                        ->icon('heroicon-o-qr-code')
-                        ->color('info')
-                        ->action(function (Device $record) {
-                            $amapiClient = app(AMAPIClientService::class);
+                    // Action::make('regenerate_qr')
+                    //     ->label('Régénérer QR Code')
+                    //     ->icon('heroicon-o-qr-code')
+                    //     ->color('info')
+                    //     ->action(function (Device $record) {
+                    //         $amapiClient = app(AMAPIClientService::class);
 
-                            try {
-                                $result = $amapiClient->generateProvisioningQRCode($record);
+                    //         try {
+                    //             $result = $amapiClient->generateProvisioningQRCode($record);
 
-                                Notification::make()
-                                    ->title('QR Code généré')
-                                    ->body('Expire le : ' . $result['expires_at']->format('d/m/Y H:i'))
-                                    ->success()
-                                    ->send();
-                            } catch (\Exception $e) {
-                                Notification::make()
-                                    ->title('Erreur')
-                                    ->body($e->getMessage())
-                                    ->danger()
-                                    ->send();
-                            }
-                        })
-                        ->visible(
-                            fn(Device $record) =>
-                            !$record->amapiDevice ||
-                                $record->amapiDevice->amapi_state === 'PROVISIONING'
-                        ),
+                    //             Notification::make()
+                    //                 ->title('QR Code généré')
+                    //                 ->body('Expire le : ' . $result['expires_at']->format('d/m/Y H:i'))
+                    //                 ->success()
+                    //                 ->send();
+                    //         } catch (\Exception $e) {
+                    //             Notification::make()
+                    //                 ->title('Erreur')
+                    //                 ->body($e->getMessage())
+                    //                 ->danger()
+                    //                 ->send();
+                    //         }
+                    //     })
+                    //     ->visible(
+                    //         fn(Device $record) =>
+                    //         !$record->amapiDevice ||
+                    //             $record->amapiDevice->amapi_state === 'PROVISIONING'
+                    //     ),
 
                     // Voir l'historique de verrouillage
                     Action::make('lock_history')
@@ -216,23 +216,23 @@ class DevicesTable
                         ->color('gray')
                         ->modalHeading('Historique de verrouillage')
                         ->modalContent(fn(Device $record) => view('filament.devices.lock-history', [
-                            'history' => $record->lockHistory()->latest()->limit(20)->get()
+                            'lockHistory' => $record->lockHistory()->latest()->limit(20)->get()
                         ]))
                         ->modalWidth('3xl'),
                 ])
-            ])
-            ->toolbarActions([
-                // Ajouter une action pour créer un device manuellement
-                Action::make('create_device_manual')
-                    ->label('Créer un appareil manuellement')
-                    ->icon('heroicon-o-plus')
-                    ->color('success')
-                    ->action(function () {
-                        // Rediriger vers la page de création d'un appareil avec des paramètres pré-remplis pour indiquer que c'est une création manuelle
-                        // Par exemple, vous pouvez ajouter un paramètre ?manual=true à l'URL et gérer cela dans la page de création pour pré-remplir certains champs ou afficher des instructions spécifiques
-                        redirect()->route('filament.resources.devices.create', ['manual' => true]);
-                    }),
             ]);
+            // ->toolbarActions([
+            //     // Ajouter une action pour créer un device manuellement
+            //     Action::make('create_device_manual')
+            //         ->label('Créer un appareil manuellement')
+            //         ->icon('heroicon-o-plus')
+            //         ->color('success')
+            //         ->action(function () {
+            //             // Rediriger vers la page de création d'un appareil avec des paramètres pré-remplis pour indiquer que c'est une création manuelle
+            //             // Par exemple, vous pouvez ajouter un paramètre ?manual=true à l'URL et gérer cela dans la page de création pour pré-remplir certains champs ou afficher des instructions spécifiques
+            //             redirect()->route('filament.resources.devices.create', ['manual' => true]);
+            //         }),
+            // ]);
 
         // return $table
         //     ->columns([

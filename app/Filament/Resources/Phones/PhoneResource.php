@@ -131,11 +131,14 @@ class PhoneResource extends Resource
                 EditAction::make(),
               //  DeleteAction::make(),
               // add action for sale who open a form to register the sale contract in another resource with the phone id
+              //verify if the phone quantity is greater than 0 before allowing the sale action
+              
               Action::make('sale')
                     ->label('Vendre')
                     ->icon('heroicon-o-currency-dollar')
                     ->url(fn (Phone $record) => FinancingPlanResource::getUrl('create', ['phone_id' => $record->id])),
                  //   ->url(fn (Phone $record) => route('filament.resources.financing_plan.create', ['phone_id' => $record->id])),
+
             ])
             ->bulkActions([
              //   DeleteBulkAction::make(),

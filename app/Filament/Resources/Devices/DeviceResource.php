@@ -45,8 +45,8 @@ class DeviceResource extends Resource
     {
         return [
             'index' => ListDevices::route('/'),
-            'create' => CreateDevice::route('/create'),
-            'edit' => EditDevice::route('/{record}/edit'),
+          //  'create' => CreateDevice::route('/create'),
+           // 'edit' => EditDevice::route('/{record}/edit'),
         ];
     }
 
