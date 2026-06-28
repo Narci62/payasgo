@@ -9,6 +9,9 @@ use App\Models\Phone;
 use App\Services\AMAPIClientService;
 use App\Services\DeviceService;
 use Illuminate\Support\Facades\Cache;
+use Filament\Notifications\Notification;
+use Filament\Support\Exceptions\Halt;
+
 
 class CreateFinancingPlan extends CreateRecord
 {
@@ -21,7 +24,19 @@ class CreateFinancingPlan extends CreateRecord
 
         // create device
 
-        $device_name = Phone::find($formData['phone_id'])->brand;
+        $phone = Phone::find($formData['phone_id']);
+
+        // verify if phone quantity is greater than 0 before allowing the sale action
+        if ($phone->stock <= 0) {
+            Notification::make()
+                ->title('Le téléphone sélectionné est en rupture de stock. Veuillez sélectionner un autre téléphone.')
+                ->danger()
+                ->send();
+
+            throw new Halt();
+        }
+
+        $device_name = $phone->brand;
 
         $device = new DeviceService();
         $createdDevice = $device->createDevice([
@@ -77,7 +92,7 @@ class CreateFinancingPlan extends CreateRecord
 
         // create enrollment token for google amapi enrollment
         $amapi_enrollment_token = (new AMAPIClientService())->generateProvisioningQRCode($financing_plan->device);
-       // dd($amapi_enrollment_token);
+        // dd($amapi_enrollment_token);
 
 
         // save payment histories
@@ -89,14 +104,10 @@ class CreateFinancingPlan extends CreateRecord
             'status' => 'completed',
             'paid_at' => now(),
         ]);
-
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
-
 }
-
-

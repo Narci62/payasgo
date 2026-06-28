@@ -81,7 +81,7 @@ class FinancingPlanResource extends Resource
                             ->required(),
 
                         TextInput::make('total_price')
-                            ->label('Prix total')
+                            ->label('Prix Cash')
                             ->numeric()
                             ->prefix('CFA')
                             ->required(),
@@ -101,7 +101,9 @@ class FinancingPlanResource extends Resource
                         TextInput::make('days_interval')
                             ->label('Intervalle de jours entre les paiements')
                             ->integer()
-                            ->required(), 
+                            ->required(),
+
+                        // afiche en label le prix total calculé à partir du prix cash,
 
                     ])->columns(2), // 2 colonnes pour cette section
 
