@@ -103,7 +103,6 @@ class FinancingPlanResource extends Resource
                             ->integer()
                             ->required(),
 
-                        // afiche en label le prix total calculé à partir du prix cash,
 
                     ])->columns(2), // 2 colonnes pour cette section
 
