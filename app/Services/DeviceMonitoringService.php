@@ -33,11 +33,25 @@ class DeviceMonitoringService
             })
             ->get();
 
+        // logger le nombre d'appareils récupérés
+        Log::info('Device monitoring started', ['total_devices' => $devices->count()]);
+
         foreach ($devices as $device) {
             $results['checked']++;
 
             try {
                 $action = $this->determineDeviceAction($device);
+
+                // logger l'action déterminée pour chaque appareil
+                Log::info('Device action determined', [
+                    'device_id' => $device->id,
+                    'client' => $device->client?->name ?? 'Unknown',
+                    'action' => $action,
+                    'device_status' => $device->status,
+                    'amapi_state' => $device->amapiDevice?->amapi_state,
+                    'next_payment_due_date' => $device->financingPlan?->next_payment_due_date,
+                    'last_seen_at' => $device->last_seen_at,
+                ]);
 
                 if ($action === 'LOCK') {
                     $reason = $this->getLockReason($device);
@@ -53,11 +67,13 @@ class DeviceMonitoringService
             } catch (\Exception $e) {
                 $results['errors'][] = [
                     'device_id' => $device->id,
+                    'client' => $device->client?->name ?? 'Unknown',    
                     'error' => $e->getMessage()
                 ];
 
                 Log::error('Device monitoring error', [
                     'device_id' => $device->id,
+                    'client' => $device->client?->name ?? 'Unknown',
                     'error' => $e->getMessage()
                 ]);
             }
@@ -204,4 +220,6 @@ class DeviceMonitoringService
             ];
         }
     }
+
+
 }

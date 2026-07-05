@@ -35,6 +35,11 @@ class DeviceObserver
     public function deleted(Device $device): void
     {
         //
+        // update stock in Phone model
+        if ($device->phone_id) {
+            $phone = $device->phone;
+            $phone->increment('stock');
+        }
     }
 
     /**

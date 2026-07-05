@@ -27,6 +27,9 @@ class DevicesTable
          * d'enrollement amapi,  les historiques de paiement et les action verrouiller et deverrouiller le téléphone
          */
 
+        // par ordre decroissant de la date de derniere connexion
+        $table->defaultSort('last_seen_at', 'desc');
+
         return $table
             ->columns([
                 TextColumn::make('client.full_name')
@@ -219,6 +222,31 @@ class DevicesTable
                             'lockHistory' => $record->lockHistory()->latest()->limit(20)->get()
                         ]))
                         ->modalWidth('3xl'),
+
+
+                        // delete action
+                        Action::make('delete_device')
+                        ->label('Supprimer')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Supprimer cet appareil ?')
+                        ->modalDescription('Cette action est irréversible. L\'appareil sera supprimé de la base de données.')
+                        ->action(function (Device $record) {
+                            try {
+                                $record->delete();
+                                Notification::make()
+                                    ->title('Appareil supprimé')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Erreur')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ])
             ]);
             // ->toolbarActions([

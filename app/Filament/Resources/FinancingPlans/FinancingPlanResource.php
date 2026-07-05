@@ -241,9 +241,9 @@ class FinancingPlanResource extends Resource
                                 ->required(),
                         ]),
 
-                    // DeleteAction::make()
-                    //     ->label('Supprimer')
-                    //     ->icon('heroicon-o-trash'),
+                    DeleteAction::make()
+                        ->label('Supprimer')
+                        ->icon('heroicon-o-trash'),
 
                 ]),
             ])

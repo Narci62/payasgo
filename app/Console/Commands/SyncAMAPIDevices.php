@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\AMAPIClientService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SyncAMAPIDevices extends Command
 {
@@ -28,6 +29,8 @@ class SyncAMAPIDevices extends Command
         $amapiClientService->syncAMAPIDevices();
 
         $this->newLine();
+
+        Log::info('🔍 Synchronisation des appareils terminée avec succès.');
 
 
     }
