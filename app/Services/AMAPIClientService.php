@@ -43,6 +43,11 @@ class AMAPIClientService
                 ]);
 
             if ($response->failed()) {
+                Log::error('AMAPI enrollment token creation failed', [
+                    'device_id' => $device->id,
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                ]);
                 throw new Exception("AMAPI enrollment token creation failed: " . $response->body());
             }
 
@@ -94,9 +99,9 @@ class AMAPIClientService
             return;
         }
 
-        Log::info('AMAPI Sync Response', [
-            'response' => $response->body(),
-        ]);
+        // Log::info('AMAPI Sync Response', [
+        //     'response' => $response->body(),
+        // ]);
 
         $googleDevices = $response->json('devices', []);
 
