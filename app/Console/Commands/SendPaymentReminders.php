@@ -25,7 +25,6 @@ class SendPaymentReminders extends Command
     //     $this->fcmService = $fcmService;
     // }
 
-
     /**
      * The console command description.
      *
@@ -42,13 +41,14 @@ class SendPaymentReminders extends Command
 
         // --- Rappel à J-5 ---
         $dateJ5 = Carbon::today()->addDays(5)->toDateString();
-        $this->sendRemindersForDate($dateJ5, "Votre paiement arrive à échéance dans 5 jours.");
+        $this->sendRemindersForDate($dateJ5, 'Votre paiement arrive à échéance dans 5 jours.');
 
         // --- Rappel à J-1 (la veille) ---
         $dateJ1 = Carbon::today()->addDay()->toDateString();
-        $this->sendRemindersForDate($dateJ1, "Votre paiement expire demain. Pensez à recharger.");
+        $this->sendRemindersForDate($dateJ1, 'Votre paiement expire demain. Pensez à recharger.');
 
         $this->info('Envoi des rappels terminé.');
+
         return 0;
     }
 
@@ -64,17 +64,18 @@ class SendPaymentReminders extends Command
             ->get();
 
         if ($plans->isEmpty()) {
-            $this->line("Aucun rappel à envoyer pour le " . $date . ".");
+            $this->line('Aucun rappel à envoyer pour le '.$date.'.');
+
             return;
         }
 
-        $this->line("Envoi de " . $plans->count() . " rappels pour le " . $date . "...");
+        $this->line('Envoi de '.$plans->count().' rappels pour le '.$date.'...');
 
         foreach ($plans as $plan) {
             // S'assurer que l'appareil existe et a un token FCM enregistré
             if ($plan->device && $plan->device->fcm_token) {
 
-                $title = "Rappel de Paiement";
+                $title = 'Rappel de Paiement';
 
                 try {
                     // Appeler le service pour envoyer le push
@@ -86,7 +87,7 @@ class SendPaymentReminders extends Command
                     ));
                 } catch (\Exception $e) {
                     // Ne pas bloquer la boucle, juste enregistrer l'erreur
-                    $this->error("Échec d'envoi au device " . $plan->device->id . ": " . $e->getMessage());
+                    $this->error("Échec d'envoi au device ".$plan->device->id.': '.$e->getMessage());
                 }
             }
         }

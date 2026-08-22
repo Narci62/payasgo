@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Payment;
@@ -22,7 +23,7 @@ class PaymentService
             $payment->status = $status;
             $payment->save();
         }
+
         return $payment;
     }
-
 }

@@ -42,7 +42,7 @@
             <div>
                 <label for="amount" class="block text-sm font-medium text-gray-700">Montant à payer (CFA)</label>
                 <input type="number" id="amount" name="amount"
-                       value="{{ old('amount') }}"
+                       value="{{ old('amount') ?? intval($installment_amount) ?? '' }}"
                        class="mt-1 w-full border-gray-300  rounded-xl focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 p-2.5" style="border:1px solid black" required>
             </div>
 

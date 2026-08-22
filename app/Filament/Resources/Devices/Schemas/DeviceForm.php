@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Devices\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class DeviceForm
@@ -29,12 +29,12 @@ class DeviceForm
                 TextInput::make('imei'),
                 Select::make('status')
                     ->options([
-            'pending_registration' => 'Pending registration',
-            'active' => 'Active',
-            'payment_due' => 'Payment due',
-            'locked' => 'Locked',
-            'disabled' => 'Disabled',
-        ])
+                        'pending_registration' => 'Pending registration',
+                        'active' => 'Active',
+                        'payment_due' => 'Payment due',
+                        'locked' => 'Locked',
+                        'disabled' => 'Disabled',
+                    ])
                     ->default('pending_registration')
                     ->required(),
                 DateTimePicker::make('last_seen_at'),

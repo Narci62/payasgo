@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('registration_tokens', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("client_id")->constrained()->onDelete("cascade");
-            $table->foreignId("device_id")->nullable()->constrained()->onDelete("cascade");
-            $table->string("token")->unique()->comment("Le jeton unique utilisé pour l'enregistrement.");
-            $table->timestamp("used_at")->nullable()->comment("Date à laquelle le token a été utilisé.");
-            $table->timestamp("expires_at")->comment("La date et l'heure d'expiration du jeton.");
+            $table->foreignId('client_id')->constrained()->onDelete('cascade');
+            $table->foreignId('device_id')->nullable()->constrained()->onDelete('cascade');
+            $table->string('token')->unique()->comment("Le jeton unique utilisé pour l'enregistrement.");
+            $table->timestamp('used_at')->nullable()->comment('Date à laquelle le token a été utilisé.');
+            $table->timestamp('expires_at')->comment("La date et l'heure d'expiration du jeton.");
             $table->timestamps();
             $table->softDeletes();
         });

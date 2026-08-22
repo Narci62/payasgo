@@ -4,8 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-use function Laravel\Prompts\text;
-
 return new class extends Migration
 {
     /**
@@ -24,9 +22,9 @@ return new class extends Migration
             $table->string('device_brand')->nullable();
             $table->string('imei')->nullable();
             $table->text('fcm_token')->nullable();
-            $table->enum('status', ["pending_registration","active","payment_due","locked","disabled"])->default("pending_registration");
+            $table->enum('status', ['pending_registration', 'active', 'payment_due', 'locked', 'disabled'])->default('pending_registration');
             $table->timestamp('last_seen_at')->nullable();
-            $table->text("notes")->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

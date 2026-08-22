@@ -13,16 +13,14 @@ class SyncAMAPIDevices extends Command
      *
      * @var string
      */
-
     protected $signature = 'devices:sync-amapi-devices';
+
     protected $description = "Synchronise les appareils avec l'API AMAPI";
-
-
 
     /**
      * Execute the console command.
      */
-    public function handle( AMAPIClientService $amapiClientService )
+    public function handle(AMAPIClientService $amapiClientService)
     {
         $this->info('🔍 Début de la synchronisation des appareils...');
 
@@ -31,7 +29,6 @@ class SyncAMAPIDevices extends Command
         $this->newLine();
 
         Log::info('🔍 Synchronisation des appareils terminée avec succès.');
-
 
     }
 }

@@ -2,19 +2,19 @@
 
 namespace App\Filament\Pages;
 
-use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Filament\Pages\Page;
-use Filament\Tables\Table;
-use Filament\Actions\Action;
 use App\Models\Payment;
 use BackedEnum;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Concerns\InteractsWithTable;
 
 class SalesReport extends Page implements HasTable
 {
@@ -22,7 +22,7 @@ class SalesReport extends Page implements HasTable
 
     protected string $view = 'filament.pages.sales-report';
 
-    protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $title = 'Fiche de vente';
 
@@ -71,12 +71,12 @@ class SalesReport extends Page implements HasTable
                         }
 
                         // Filtre date de début
-                        if (!empty($data['from'])) {
+                        if (! empty($data['from'])) {
                             $query->whereDate('created_at', '>=', Carbon::parse($data['from']));
                         }
 
                         // Filtre date de fin
-                        if (!empty($data['to'])) {
+                        if (! empty($data['to'])) {
                             $query->whereDate('created_at', '<=', Carbon::parse($data['to']));
                         }
 
@@ -101,11 +101,11 @@ class SalesReport extends Page implements HasTable
 
         $query = Payment::query();
 
-        if (!empty($filter['from'])) {
+        if (! empty($filter['from'])) {
             $query->whereDate('created_at', '>=', Carbon::parse($filter['from']));
         }
 
-        if (!empty($filter['to'])) {
+        if (! empty($filter['to'])) {
             $query->whereDate('created_at', '<=', Carbon::parse($filter['to']));
         }
 
@@ -124,14 +124,14 @@ class SalesReport extends Page implements HasTable
 
         $pdf = Pdf::loadView('pdf.sales-report', [
             'sales' => $sales,
-            'from'  => $filter['from'] ?? null,
-            'to'    => $filter['to'] ?? null,
+            'from' => $filter['from'] ?? null,
+            'to' => $filter['to'] ?? null,
         ]);
 
-        $filename = 'P-Guard_' . now()->format('Ymd_His') . '.pdf';
+        $filename = 'P-Guard_'.now()->format('Ymd_His').'.pdf';
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             $filename
         );
     }

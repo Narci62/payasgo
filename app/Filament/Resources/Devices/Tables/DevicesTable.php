@@ -54,25 +54,34 @@ class DevicesTable
                 TrashedFilter::make(),
             ])
             ->actions([
+                // Affichage "Téléphone libéré" quand le device n'est plus sous contrôle AMAPI
+                Action::make('liberated_label')
+                    ->label('Téléphone libéré')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (Device $record) => $record->isLiberated()),
+
                 Action::make('amapi_status')
                     ->label('État AMAPI')
                     ->icon('heroicon-o-shield-check')
                     ->color('info')
                     ->modalHeading('QR Code d\'enrôlement AMAPI')
-                    ->modalContent(fn(Device $record) => view('filament.devices.qr-code', [
+                    ->modalContent(fn (Device $record) => view('filament.devices.qr-code', [
                         'qrcode' => Helper::generateJsonQrCode($record),
                     ]))
-                    ->modalWidth('lg'),
+                    ->modalWidth('lg')
+                    ->visible(fn (Device $record) => ! $record->isLiberated()),
 
                 Action::make('lock_history')
                     ->label('Historique de verrouillage')
                     ->icon('heroicon-o-clock')
                     ->color('gray')
                     ->modalHeading('Historique de verrouillage')
-                    ->modalContent(fn(Device $record) => view('filament.devices.lock-history', [
-                        'lockHistory' => $record->lockHistory()->latest()->limit(20)->get()
+                    ->modalContent(fn (Device $record) => view('filament.devices.lock-history', [
+                        'lockHistory' => $record->lockHistory()->latest()->limit(20)->get(),
                     ]))
-                    ->modalWidth('3xl'),
+                    ->modalWidth('3xl')
+                    ->visible(fn (Device $record) => ! $record->isLiberated()),
                 ActionGroup::make([
 
                     // Verrouiller manuellement
@@ -112,7 +121,7 @@ class DevicesTable
                                     ->send();
                             }
                         })
-                        ->visible(fn(Device $record) => !$record->isLocked()),
+                        ->visible(fn (Device $record) => ! $record->isLocked() && ! $record->isLiberated()),
 
                     // Déverrouiller manuellement
                     Action::make('unlock_device')
@@ -151,7 +160,46 @@ class DevicesTable
                                     ->send();
                             }
                         })
-                        ->visible(fn(Device $record) => $record->isLocked()),
+                        ->visible(fn (Device $record) => $record->isLocked() && ! $record->isLiberated()),
+
+                    // Désinstaller AMAPI
+                    Action::make('uninstall_amapi')
+                        ->label('Désinstaller AMAPI')
+                        ->icon('heroicon-o-no-symbol')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Désinstaller AMAPI ?')
+                        ->modalDescription('Le device sera libéré du contrôle AMAPI. Cette action est irréversible.')
+                        ->action(function (Device $record) {
+                            $amapiClient = app(AMAPIClientService::class);
+
+                            try {
+                                $success = $amapiClient->deleteDevice(
+                                    $record,
+                                    'ADMIN_UNINSTALL',
+                                    auth()->id()
+                                );
+
+                                if ($success) {
+                                    Notification::make()
+                                        ->title('Device désinstallé de AMAPI')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Échec de la désinstallation')
+                                        ->danger()
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Erreur')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->visible(fn (Device $record) => $record->isFullyPaid() && ! $record->isLiberated()),
 
                     // Vérifier maintenant (forcer le check)
                     Action::make('check_now')
@@ -170,7 +218,7 @@ class DevicesTable
                                     ->send();
                             } elseif ($result['success'] ?? false) {
                                 Notification::make()
-                                    ->title('Action effectuée : ' . $result['action'])
+                                    ->title('Action effectuée : '.$result['action'])
                                     ->success()
                                     ->send();
                             } else {
@@ -180,7 +228,8 @@ class DevicesTable
                                     ->danger()
                                     ->send();
                             }
-                        }),
+                        })
+                        ->visible(fn (Device $record) => ! $record->isLiberated()),
 
                     // Générer un nouveau QR Code
                     // Action::make('regenerate_qr')
@@ -218,14 +267,14 @@ class DevicesTable
                         ->icon('heroicon-o-clock')
                         ->color('gray')
                         ->modalHeading('Historique de verrouillage')
-                        ->modalContent(fn(Device $record) => view('filament.devices.lock-history', [
-                            'lockHistory' => $record->lockHistory()->latest()->limit(20)->get()
+                        ->modalContent(fn (Device $record) => view('filament.devices.lock-history', [
+                            'lockHistory' => $record->lockHistory()->latest()->limit(20)->get(),
                         ]))
-                        ->modalWidth('3xl'),
+                        ->modalWidth('3xl')
+                        ->visible(fn (Device $record) => ! $record->isLiberated()),
 
-
-                        // delete action
-                        Action::make('delete_device')
+                    // delete action
+                    Action::make('delete_device')
                         ->label('Supprimer')
                         ->icon('heroicon-o-trash')
                         ->color('danger')
@@ -246,21 +295,22 @@ class DevicesTable
                                     ->danger()
                                     ->send();
                             }
-                        }),
-                ])
+                        })
+                        ->visible(fn (Device $record) => ! $record->isLiberated()),
+                ]),
             ]);
-            // ->toolbarActions([
-            //     // Ajouter une action pour créer un device manuellement
-            //     Action::make('create_device_manual')
-            //         ->label('Créer un appareil manuellement')
-            //         ->icon('heroicon-o-plus')
-            //         ->color('success')
-            //         ->action(function () {
-            //             // Rediriger vers la page de création d'un appareil avec des paramètres pré-remplis pour indiquer que c'est une création manuelle
-            //             // Par exemple, vous pouvez ajouter un paramètre ?manual=true à l'URL et gérer cela dans la page de création pour pré-remplir certains champs ou afficher des instructions spécifiques
-            //             redirect()->route('filament.resources.devices.create', ['manual' => true]);
-            //         }),
-            // ]);
+        // ->toolbarActions([
+        //     // Ajouter une action pour créer un device manuellement
+        //     Action::make('create_device_manual')
+        //         ->label('Créer un appareil manuellement')
+        //         ->icon('heroicon-o-plus')
+        //         ->color('success')
+        //         ->action(function () {
+        //             // Rediriger vers la page de création d'un appareil avec des paramètres pré-remplis pour indiquer que c'est une création manuelle
+        //             // Par exemple, vous pouvez ajouter un paramètre ?manual=true à l'URL et gérer cela dans la page de création pour pré-remplir certains champs ou afficher des instructions spécifiques
+        //             redirect()->route('filament.resources.devices.create', ['manual' => true]);
+        //         }),
+        // ]);
 
         // return $table
         //     ->columns([

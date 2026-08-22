@@ -15,7 +15,7 @@ class DeviceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['financingPlan','client']);
+        $this->loadMissing(['financingPlan', 'client']);
 
         $expiresAt = $this->financingPlan?->next_payment_due_date;
         $gracePeriodEndsAt = $this->financingPlan?->grace_period_ends_at;
@@ -23,14 +23,17 @@ class DeviceResource extends JsonResource
         $status = $this->getStatus($expiresAt);
 
         return [
-
+            'device_id' => $this->client?->reference,
+            'matricule' => $this->client?->reference,
             'name' => $this->client?->full_name,
-            'phone_model' => $this->phone_model ?? "redmi",
+            'phone_model' => $this->phone_model ?? 'redmi',
             'total_price' => $this->financingPlan?->total_price,
             'paid_amount' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
             'remaining_amount' => $this->financingPlan?->remaining_balance,
-            'due_date' => $expiresAt,
+            'sync_date' => $expiresAt,
             'status' => $status,
+            'last_check_in' => $this->last_seen_at,
+            'department' => 'S1',
 
             // 'device_id' => $this->public_id,
             // 'subscription' => [

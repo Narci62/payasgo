@@ -2,23 +2,23 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Tables\Table;
-use Filament\Actions\Action;
+use App\Filament\Resources\Clients\ClientResource;
 use App\Models\Financing_plan;
-use Filament\Actions\EditAction;
-use Filament\Actions\ActionGroup;
-use Filament\Widgets\TableWidget;
-use Filament\Actions\DeleteAction;
-use Filament\Tables\Filters\Filter;
-use Filament\Actions\BulkActionGroup;
 use App\Services\FinancingPlanService;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\Clients\ClientResource;
 
 class AllContractsWidget extends TableWidget
 {
@@ -32,13 +32,12 @@ class AllContractsWidget extends TableWidget
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('registrationToken.client.full_name')
-                ->label('Client')
-                ->sortable()
-                ->searchable()
-                //link to client resource
-                ->url(fn (Financing_plan $record): string =>
-                    ClientResource::getUrl('edit', ['record' => $record->registrationToken->client->id]))
-                ->default('N/A'),
+                    ->label('Client')
+                    ->sortable()
+                    ->searchable()
+                // link to client resource
+                    ->url(fn (Financing_plan $record): string => ClientResource::getUrl('edit', ['record' => $record->registrationToken->client->id]))
+                    ->default('N/A'),
 
                 TextColumn::make('device.device_name')
                     ->label('Appareil')
@@ -65,7 +64,7 @@ class AllContractsWidget extends TableWidget
                     ->label('Solde restant')
                     ->searchable(),
 
-                TextColumn::make("installment_amount")
+                TextColumn::make('installment_amount')
                     ->label('Montant des versements')
                     ->searchable(),
 
@@ -105,8 +104,7 @@ class AllContractsWidget extends TableWidget
                 Filter::make('created_at')
                     ->label('Inscrits récents (7 derniers jours)')
                     ->query(
-                        fn(Builder $query): Builder =>
-                        $query->where('created_at', '>=', now()->subDays(7))
+                        fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDays(7))
                     )
                     ->toggle(),
             ])
@@ -124,7 +122,7 @@ class AllContractsWidget extends TableWidget
                         ->action(function (Financing_plan $record): void {
                             // Logic to view payment history
                             $payments = $record->payments;
-                            //dd($payments);
+                            // dd($payments);
                         })
                         ->modalWidth('lg')
                         ->modalHeading('Historique des paiements')
@@ -132,14 +130,13 @@ class AllContractsWidget extends TableWidget
                             'payments' => $record->payments,
                         ])),
 
-
                     // add payment action
                     Action::make('add_payment')
                         ->label('Ajouter un paiement')
                         ->icon('heroicon-o-currency-dollar')
                         ->action(function (Financing_plan $record, array $data): void {
-                            $financingPlanService = new FinancingPlanService();
-                            $payments = $financingPlanService->savePayment($record,$data['amount'], 'manual', uniqid("txn-"));
+                            $financingPlanService = new FinancingPlanService;
+                            $payments = $financingPlanService->savePayment($record, $data['amount'], 'manual', uniqid('txn-'));
                             Notification::make()
                                 ->title('Paiement ajouté avec succès.')
                                 ->success()

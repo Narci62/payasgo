@@ -17,14 +17,14 @@ class FinancingPlanResource extends JsonResource
         $this->loadMissing(['registrationToken']);
 
         return [
-            "message" => "Nouvelle vente échelonnée crée avec success",
-            "client" => [
-                "total_price" => $this->total_price,
-                "down_payment" => $this->down_payment,
-                "installment_amount" => $this->installment_amount,
-                "remaining_balance" => $this->remaining_balance,
-                "registration_token" => $this->registrationTokens->where("used_at", null)->first()->token,
-                "created_at" => $this->created_at,
+            'message' => 'Nouvelle vente échelonnée crée avec success',
+            'client' => [
+                'total_price' => $this->total_price,
+                'down_payment' => $this->down_payment,
+                'installment_amount' => $this->installment_amount,
+                'remaining_balance' => $this->remaining_balance,
+                'registration_token' => $this->registrationTokens->where('used_at', null)->first()->token,
+                'created_at' => $this->created_at,
             ],
         ];
     }

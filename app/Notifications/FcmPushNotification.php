@@ -3,13 +3,10 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\Fcm\FcmMessage;
 use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
-
 
 class FcmPushNotification extends Notification
 {
@@ -18,9 +15,7 @@ class FcmPushNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(public string $title, public string $body, public ?string $image, public array $data)
-    {
-    }
+    public function __construct(public string $title, public string $body, public ?string $image, public array $data) {}
 
     /**
      * Get the notification's delivery channels.

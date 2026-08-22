@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Device;
-use App\Models\Financing_plan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +22,7 @@ class DeviceMonitoringService
             'checked' => 0,
             'locked' => 0,
             'unlocked' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         // Récupérer tous les appareils actifs avec leur plan de financement
@@ -67,14 +66,14 @@ class DeviceMonitoringService
             } catch (\Exception $e) {
                 $results['errors'][] = [
                     'device_id' => $device->id,
-                    'client' => $device->client?->name ?? 'Unknown',    
-                    'error' => $e->getMessage()
+                    'client' => $device->client?->name ?? 'Unknown',
+                    'error' => $e->getMessage(),
                 ];
 
                 Log::error('Device monitoring error', [
                     'device_id' => $device->id,
                     'client' => $device->client?->name ?? 'Unknown',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -93,11 +92,11 @@ class DeviceMonitoringService
         $currentlyLocked = $device->status === 'locked' ||
                           $device->amapiDevice?->amapi_state === 'DISABLED';
 
-        if ($shouldBeLocked && !$currentlyLocked) {
+        if ($shouldBeLocked && ! $currentlyLocked) {
             return 'LOCK';
         }
 
-        if (!$shouldBeLocked && $currentlyLocked) {
+        if (! $shouldBeLocked && $currentlyLocked) {
             return 'UNLOCK';
         }
 
@@ -129,17 +128,17 @@ class DeviceMonitoringService
     {
         $plan = $device->financingPlan;
 
-        if (!$plan) {
+        if (! $plan) {
             return false;
         }
 
         // Si le plan est déjà soldé, pas de retard
-        if ($plan->status === 'paid_in_full') {
+        if ($plan->getRawOriginal('status') === 'paid_in_full') {
             return false;
         }
 
         // Si pas de date de prochain paiement, pas de retard
-        if (!$plan->next_payment_due_date) {
+        if (! $plan->next_payment_due_date) {
             return false;
         }
 
@@ -152,16 +151,71 @@ class DeviceMonitoringService
     /**
      * Vérifie si l'appareil est inactif depuis 14 jours
      */
+    // private function isInactive14Days(Device $device): bool
+    // {
+    //     if (!$device->last_seen_at) {
+    //         // Si jamais vu, considérer comme inactif après 14 jours depuis création
+    //         return $device->created_at->diffInDays(now()) >= 14;
+    //     }
+
+    //     $lastSeen = Carbon::parse($device->last_seen_at);
+
+    //     return $lastSeen->diffInDays(now()) >= 14;
+    // }
+    /**
+     * Vérifie si l'appareil est inactif depuis 14 jours.
+     *
+     * IMPORTANT : last_seen_at n'est mis à jour que lorsque le device appelle
+     * notre API (/device/status) ou via un webhook AMAPI déjà reçu. Pour éviter
+     * de verrouiller un appareil qui communique bien avec Google mais n'a pas
+     * (encore) rappelé notre API, on resynchronise activement depuis AMAPI
+     * dès qu'on approche du seuil (>= 12 jours), avant de trancher définitivement.
+     */
     private function isInactive14Days(Device $device): bool
     {
-        if (!$device->last_seen_at) {
-            // Si jamais vu, considérer comme inactif après 14 jours depuis création
-            return $device->created_at->diffInDays(now()) >= 14;
+        $daysSinceLastSeen = $this->daysSinceLastSeen($device);
+
+        // On ne sollicite AMAPI que si on approche/dépasse le seuil,
+        // pour ne pas multiplier les appels API sur l'ensemble du parc à chaque cron.
+        if ($daysSinceLastSeen >= 12) {
+            $this->refreshDeviceActivityFromAmapi($device);
+            $daysSinceLastSeen = $this->daysSinceLastSeen($device->fresh());
         }
 
-        $lastSeen = Carbon::parse($device->last_seen_at);
+        return $daysSinceLastSeen >= 14;
+    }
 
-        return $lastSeen->diffInDays(now()) >= 14;
+    /**
+     * Calcule le nombre de jours écoulés depuis la dernière activité connue.
+     */
+    private function daysSinceLastSeen(Device $device): int
+    {
+        $lastSeen = $device->last_seen_at
+            ? Carbon::parse($device->last_seen_at)
+            : $device->created_at;
+
+        return $lastSeen->diffInDays(now());
+    }
+
+    /**
+     * Interroge AMAPI pour vérifier la dernière activité réelle de l'appareil
+     * et met à jour last_seen_at en conséquence si Google rapporte plus récent.
+     * Échec silencieux (log uniquement) : on se rabat alors sur la donnée locale.
+     */
+    private function refreshDeviceActivityFromAmapi(Device $device): void
+    {
+        if (! $device->amapiDevice?->amapi_device_id) {
+            return;
+        }
+
+        try {
+            $this->amapiClient->syncDeviceStatus($device);
+        } catch (\Exception $e) {
+            Log::warning('Resync AMAPI échouée, utilisation des données locales pour la décision', [
+                'device_id' => $device->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -195,7 +249,7 @@ class DeviceMonitoringService
                 return [
                     'action' => 'LOCK',
                     'success' => $success,
-                    'reason' => $reason
+                    'reason' => $reason,
                 ];
             }
 
@@ -204,22 +258,20 @@ class DeviceMonitoringService
 
                 return [
                     'action' => 'UNLOCK',
-                    'success' => $success
+                    'success' => $success,
                 ];
             }
 
             return [
                 'action' => 'NONE',
-                'message' => 'No action required'
+                'message' => 'No action required',
             ];
 
         } catch (\Exception $e) {
             return [
                 'action' => 'ERROR',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
-
-
 }

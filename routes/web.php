@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AMAPICallbackController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\FedapayWebhookController;
 use App\Http\Controllers\ManagedPlayController;
 use App\Http\Controllers\UserController;
@@ -8,12 +9,13 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect("/admin");
+    return redirect('/admin');
 });
-
 
 Route::get('/paiement/{imat?}', [FedapayWebhookController::class, 'showForm'])->name('payment.form');
 Route::post('/paiement', [FedapayWebhookController::class, 'processPayment'])->name('payment.process');
+Route::get('/regularisation/{imat?}', [FedapayWebhookController::class, 'showForm'])->name('payment.form');
+Route::post('/regularisation', [FedapayWebhookController::class, 'processPayment'])->name('payment.process');
 Route::get('/fedapay/finish', [FedapayWebhookController::class, 'callback'])->name('fedapay.end');
 
 // Callback AMAPI (après enrollment)
@@ -21,10 +23,10 @@ Route::get('/amapi', [App\Http\Controllers\AMAPICallbackController::class, 'hand
     ->name('amapi.callback');
 
 Route::get('/generate-signup-url', [AMAPICallbackController::class, 'generateSignupUrl'])
-        ->name('amapi.generate-signup-url');
+    ->name('amapi.generate-signup-url');
 
-Route::get('/information/{imat}', [UserController::class, 'show']);
-
+Route::get('/information/{imat}', [UserController::class, 'show'])->name('information.show');
+Route::get('/compliance/{imat}', [UserController::class, 'compliance'])->name('compliance.show');
 
 Route::middleware(['auth'])->prefix('admin/mdm')->group(function () {
     // C'est cette ligne qui crée l'URL exacte attendue par Google
@@ -52,3 +54,6 @@ Route::get('/cron/verify-all-devices', function () {
     Artisan::call('devices:check-lock-status');
 })->name('cron.verifyAllDevices');
 
+// post form filament.resources.phones.stock-add
+Route::post('/phones/{record}/stock-add', [DeviceController::class, 'stockAdd'])
+    ->name('phones.stock-add');

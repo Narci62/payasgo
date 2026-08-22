@@ -3,10 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Device;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
 use App\Observers\DeviceObserver;
 use App\Services\FcmNotificationService;
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Firebase\Messaging;
 

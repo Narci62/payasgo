@@ -6,11 +6,9 @@ use App\Helpers\Helper;
 use App\Models\Device;
 use App\Models\Financing_plan;
 use Carbon\Carbon;
-use Exception;
 
 class FinancingPlanService
 {
-
     public function createFinancingPlan(array $data): Financing_plan
     {
         $date_payment_due = $this->calculateNextPaymentDueDate(Carbon::now(), $data['days_interval'] ?? 30);
@@ -20,7 +18,7 @@ class FinancingPlanService
 
         return Financing_plan::create([
             'device_id' => $data['device_id'] ?? null,
-            "registration_token_id" => $data['registration_token_id'],
+            'registration_token_id' => $data['registration_token_id'],
             'total_price' => $data['total_price'],
             'down_payment' => $data['down_payment'],
             'remaining_balance' => $remaining_balance,
@@ -28,7 +26,7 @@ class FinancingPlanService
             'next_payment_due_date' => $date_payment_due,
             'days_interval' => $data['days_interval'] ?? 30,
             'grace_period_ends_at' => $grace_period_ends_at,
-            'next_offline_unlock_code' => $next_offline_unlock_code
+            'next_offline_unlock_code' => $next_offline_unlock_code,
         ]);
     }
 
@@ -40,10 +38,11 @@ class FinancingPlanService
     public function updateFinancingPlan(int $id, array $data): Financing_plan
     {
         $plan = Financing_plan::find($id);
-        if (!$plan) {
-            throw new \Exception("Financing plan not found");
+        if (! $plan) {
+            throw new \Exception('Financing plan not found');
         }
         $plan->update($data);
+
         return $plan;
     }
 
@@ -52,8 +51,8 @@ class FinancingPlanService
         $plan = Financing_plan::where('registration_token_id', $token_id)
             ->first();
 
-        if (!$plan) {
-            throw new \Exception("Financing plan not found");
+        if (! $plan) {
+            throw new \Exception('Financing plan not found');
         }
 
         $plan->update([
@@ -92,7 +91,6 @@ class FinancingPlanService
     //         $nbr_intervall = (int) ($diff_days / $intervall_days);
     //         $total_normal = $payout * $nbr_intervall;
 
-
     //         if ($nbr_intervall >= 1) {
     //             $penalite = ($payout * 0.5) * $nbr_intervall;
     //             $total_all = $penalite + $total_normal;
@@ -114,7 +112,6 @@ class FinancingPlanService
     //         "penalite" => $penalite
     //     ];
 
-
     // }
 
     public function checkEligibilityAndReturnNewAmount(Financing_plan $financing_plan, $amount)
@@ -125,7 +122,7 @@ class FinancingPlanService
 
         // Vérification du montant minimum
         if ($payout > $amount) {
-            return ["message" => "Montant insuffisant", "status" => false];
+            return ['message' => 'Montant insuffisant', 'status' => false];
         }
 
         $now = Carbon::now();
@@ -151,8 +148,8 @@ class FinancingPlanService
 
                 if ($amount < $total_all) {
                     return [
-                        "message" => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.",
-                        "status" => false
+                        'message' => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.",
+                        'status' => false,
                     ];
                 }
 
@@ -174,19 +171,20 @@ class FinancingPlanService
         }
 
         return [
-            "nbr_interval" => $nbr_intervall,
-            "status" => true,
-            "total_normal" => $total_normal,
-            "penalite" => $penalite
+            'nbr_interval' => $nbr_intervall,
+            'status' => true,
+            'total_normal' => $total_normal,
+            'penalite' => $penalite,
         ];
     }
 
-
-    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method = 'fedapay', $transactionId): Financing_plan
+    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method, $transactionId): Financing_plan
     {
-
+        $is_full_payment = false; // paiement complète
         $newbalance = $financingPlan->remaining_balance - $amountPaid;
-        if ($newbalance < 0)  $newbalance = 0;
+        if ($newbalance < 0) {
+            $newbalance = 0;
+        }
         $financingPlan->remaining_balance = $newbalance;
 
         // next payment date
@@ -203,7 +201,7 @@ class FinancingPlanService
 
         // check if financing plan is paid in full
         if ($newbalance == 0) {
-            $financingPlan->status = "paid_in_full";
+            $financingPlan->status = 'paid_in_full';
             // save uninstall code
             do {
                 $financingPlan->uninstall_code = Helper::generateRandomString();
@@ -217,7 +215,7 @@ class FinancingPlanService
         $financingPlan->save();
 
         // save payment histories
-        (new PaymentService())->store([
+        (new PaymentService)->store([
             'financing_plan_id' => $financingPlan->id,
             'amount' => $amountPaid,
             'method' => $method,
@@ -226,9 +224,21 @@ class FinancingPlanService
             'paid_at' => now(),
         ]);
 
+        $device = $financingPlan->device;
+
+        if ($device) {
+
+            if ($financingPlan->getRawOriginal('status') === 'paid_in_full') {
+                // delete amapi device
+                (new AMAPIClientService)->deleteDevice($device, 'PAYMENT_RECEIVED');
+            } else {
+                // unlock amapi device
+                (new AMAPIClientService)->unlockDevice($device, 'PAYMENT_RECEIVED');
+            }
+        }
+
         return $financingPlan;
     }
-
 
     public function calculateGracePeriod(Carbon $date): Carbon
     {

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('clients', function (Blueprint $table) {
             // Adding 'cip' to the enum values of the exist 'identity_document_type' column
-            $table->enum('identity_document_type', ['passport', 'national_id', 'driver_license','cip'])->default('national_id')->change();
+            $table->enum('identity_document_type', ['passport', 'national_id', 'driver_license', 'cip'])->default('national_id')->change();
         });
     }
 

@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreDeviceRequest;
+use App\Http\Requests\UpdateDeviceRequest;
+use App\Http\Resources\DeviceResource;
 use App\Models\Device;
+use App\Models\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\DeviceResource;
-use App\Http\Requests\StoreDeviceRequest;
-use App\Http\Requests\UpdateDeviceRequest;
-use Illuminate\Support\Facades\Auth;
 
 class DeviceController extends Controller
 {
@@ -20,7 +20,7 @@ class DeviceController extends Controller
     public function index()
     {
         //
-        dd("hi");
+        dd('hi');
     }
 
     /**
@@ -39,31 +39,30 @@ class DeviceController extends Controller
         // log
         Log::info('Device registration attempt', ['data' => $request->all()]);
 
-        //we will check if the token exist and is valid (not used and not expired)
+        // we will check if the token exist and is valid (not used and not expired)
         $registration_token = app("App\Services\RegistrationTokenService")->validateToken($request->input('registration_token'));
 
-        if (!$registration_token) {
+        if (! $registration_token) {
             return response()->json(['message' => 'Invalid or expired token.'], 400);
         }
-
 
         $device = DB::transaction(function () use ($request, $registration_token) {
 
             $device = app('App\Services\DeviceService')->createDevice([
                 'client_id' => $registration_token->client_id,
-                ...$request->validated()
+                ...$request->validated(),
             ]);
 
             // update the registration token as used
             $registration_token->update(['used_at' => now(), 'device_id' => $device->id]);
 
-            //update financing plan
+            // update financing plan
             app('App\Services\FinancingPlanService')->updateFinancingPlanByToken($registration_token->id, ['device_id' => $device->id]);
 
             return $device;
         });
 
-        //now we can generate token sanctum unique for this device who will use to connect anytime on phone mobile
+        // now we can generate token sanctum unique for this device who will use to connect anytime on phone mobile
         $token = $device->createToken('device-token', ['device:*'])->plainTextToken;
 
         return (new DeviceResource($device))->additional(['token' => $token]);
@@ -71,10 +70,11 @@ class DeviceController extends Controller
 
     public function userProfile(Request $request)
     {
-        $device =$request->user();
-        if (!$device) {
+        $device = $request->user();
+        if (! $device) {
             return response()->json(['message' => 'Device not found'], 404);
         }
+
         return new DeviceResource($device);
     }
 
@@ -110,14 +110,13 @@ class DeviceController extends Controller
         //
     }
 
-
     public function refresh(Request $request)
     {
         $device = Device::whereHas('client', function ($query) use ($request) {
             $query->where('reference', $request->input('matricule'))->orderBy('created_at', 'desc');
         })->first();
 
-        if (!$device) {
+        if (! $device) {
             return response()->json(['message' => 'Device not found'], 404);
         }
 
@@ -134,5 +133,23 @@ class DeviceController extends Controller
         // ]);
 
         return (new DeviceResource($device))->additional(['token' => $token]);
+    }
+
+    //  Add stockAdd method to handle the stock add form submission
+    public function stockAdd(Phone $record, array $data)
+    {
+        dd($record, $data);
+        // validate the data
+        $validated = validator($data, [
+            'quantity' => 'required|integer|min:1',
+        ])->validate();
+
+        // add the stock to the phone
+        $record->stock += $validated['quantity'];
+        $record->save();
+
+        // redirect back to the phone list with a success message
+        return redirect()->route('filament.resources.phones.index')->with('success', 'Stock ajouté avec succès.');
+
     }
 }

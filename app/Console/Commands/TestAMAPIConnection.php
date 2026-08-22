@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
+use Google\Client as GoogleClient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Google\Client as GoogleClient;
 
 class TestAMAPIConnection extends Command
 {
     protected $signature = 'amapi:test';
+
     protected $description = 'Teste la connexion à l\'API Android Management';
 
     public function handle()
@@ -33,13 +34,14 @@ class TestAMAPIConnection extends Command
                 $this->error("   ❌ {$key} non configuré");
                 $allConfigured = false;
             } else {
-                $this->line("   ✅ {$key}: " . (strlen($value) > 50 ? substr($value, 0, 50) . '...' : $value));
+                $this->line("   ✅ {$key}: ".(strlen($value) > 50 ? substr($value, 0, 50).'...' : $value));
             }
         }
 
-        if (!$allConfigured) {
+        if (! $allConfigured) {
             $this->newLine();
             $this->error('❌ Configuration incomplète. Veuillez configurer toutes les variables.');
+
             return Command::FAILURE;
         }
 
@@ -48,8 +50,9 @@ class TestAMAPIConnection extends Command
         $this->info('2️⃣ Vérification du fichier service account...');
 
         $serviceAccountPath = config('services.amapi.service_account_json');
-        if (!file_exists($serviceAccountPath)) {
+        if (! file_exists($serviceAccountPath)) {
             $this->error("   ❌ Fichier introuvable : {$serviceAccountPath}");
+
             return Command::FAILURE;
         }
 
@@ -60,23 +63,25 @@ class TestAMAPIConnection extends Command
         $this->info('3️⃣ Obtention du token d\'accès...');
 
         try {
-            $client = new GoogleClient();
+            $client = new GoogleClient;
             $client->setAuthConfig($serviceAccountPath);
             $client->addScope('https://www.googleapis.com/auth/androidmanagement');
 
             $token = $client->fetchAccessTokenWithAssertion();
 
-            if (!isset($token['access_token'])) {
+            if (! isset($token['access_token'])) {
                 $this->error('   ❌ Impossible d\'obtenir le token');
-                $this->error('   Erreur : ' . ($token['error_description'] ?? 'Inconnue'));
+                $this->error('   Erreur : '.($token['error_description'] ?? 'Inconnue'));
+
                 return Command::FAILURE;
             }
 
             $accessToken = $token['access_token'];
-            $this->line('   ✅ Token obtenu : ' . substr($accessToken, 0, 30) . '...');
+            $this->line('   ✅ Token obtenu : '.substr($accessToken, 0, 30).'...');
 
         } catch (\Exception $e) {
-            $this->error('   ❌ Erreur : ' . $e->getMessage());
+            $this->error('   ❌ Erreur : '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
@@ -91,12 +96,13 @@ class TestAMAPIConnection extends Command
 
         if ($response->failed()) {
             $this->error('   ❌ Impossible d\'accéder à l\'entreprise');
-            $this->error('   ' . $response->body());
+            $this->error('   '.$response->body());
+
             return Command::FAILURE;
         }
 
         $enterprise = $response->json();
-        $this->line('   ✅ Entreprise accessible : ' . ($enterprise['enterpriseDisplayName'] ?? 'N/A'));
+        $this->line('   ✅ Entreprise accessible : '.($enterprise['enterpriseDisplayName'] ?? 'N/A'));
 
         // 5. Vérifier les policies
         $this->newLine();

@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Device;
 
-class DeviceService {
-
+class DeviceService
+{
     public function createDevice(array $data)
     {
         return Device::create([
@@ -23,5 +24,4 @@ class DeviceService {
     /**
      *  Create device in google amapi
      */
-
 }

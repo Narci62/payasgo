@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AMAPICallbackController extends Controller
 {
@@ -30,9 +30,9 @@ class AMAPICallbackController extends Controller
         $enterpriseToken = $request->query('enterpriseToken');
         $adminEmail = $request->query('adminEmail');
 
-        if (!$enterpriseToken) {
+        if (! $enterpriseToken) {
             return view('amapi.callback-error', [
-                'error' => 'Enterprise token manquant'
+                'error' => 'Enterprise token manquant',
             ]);
         }
 
@@ -40,7 +40,7 @@ class AMAPICallbackController extends Controller
         try {
             $enterpriseId = $this->getEnterpriseIdFromToken($enterpriseToken);
 
-            if (!$enterpriseId) {
+            if (! $enterpriseId) {
                 throw new \Exception('Impossible de récupérer l\'enterprise ID');
             }
 
@@ -69,7 +69,7 @@ class AMAPICallbackController extends Controller
             ]);
 
             return view('amapi.callback-error', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -77,7 +77,6 @@ class AMAPICallbackController extends Controller
     /**
      * Récupère l'ENTERPRISE_ID à partir du token
      */
-
     private function getEnterpriseIdFromToken(string $enterpriseToken): ?string
     {
         try {
@@ -88,7 +87,7 @@ class AMAPICallbackController extends Controller
             // ATTENTION : signupUrlName doit être au format "signupUrls/XYZ"
             $queryParams = http_build_query([
                 'enterpriseToken' => $enterpriseToken,
-                'signupUrlName'   => $signupUrlName
+                'signupUrlName' => $signupUrlName,
             ]);
 
             $url = "https://androidmanagement.googleapis.com?{$queryParams}";
@@ -96,12 +95,13 @@ class AMAPICallbackController extends Controller
             // 2. L'appel POST : Le corps DOIT être un objet JSON vide {}
             $response = \Illuminate\Support\Facades\Http::withHeaders([
                 'Authorization' => "Bearer {$accessToken}",
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])->withBody('{}', 'application/json')->post($url);
 
             if ($response->failed()) {
                 // Utilisation d'un tableau vide pour éviter le TypeError précédent
                 Log::error('AMAPI 400 Error Detail', $response->json() ?? ['raw_body' => $response->body()]);
+
                 return null;
             }
 
@@ -109,6 +109,7 @@ class AMAPICallbackController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Exception AMAPI', ['msg' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -141,11 +142,12 @@ class AMAPICallbackController extends Controller
     {
         $envFile = base_path('.env');
 
-        if (!file_exists($envFile) || !is_writable($envFile)) {
+        if (! file_exists($envFile) || ! is_writable($envFile)) {
             Log::warning('Cannot update .env file', [
                 'file' => $envFile,
                 'writable' => is_writable($envFile),
             ]);
+
             return;
         }
 
@@ -171,9 +173,9 @@ class AMAPICallbackController extends Controller
 
         $response = Http::withHeaders([
             'Authorization' => "Bearer $accessToken",
-        ])->post("https://androidmanagement.googleapis.com/v1/signupUrls", [
+        ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
             'projectId' => $projectId,
-            'callbackUrl' => "https://pguard.trueline-system.com/amapi",
+            'callbackUrl' => 'https://pguard.trueline-system.com/amapi',
         ]);
 
         $signupData = $response->json();
@@ -191,11 +193,11 @@ class AMAPICallbackController extends Controller
     {
         $enterpriseToken = $request->query('enterpriseToken'); // Reçu de Google
         $signupUrlName = Cache::get('last_signup_name'); // Récupéré de notre stockage
-        $projectId =  config('services.amapi.project_id');
+        $projectId = config('services.amapi.project_id');
 
-        if (!$signupUrlName) {
+        if (! $signupUrlName) {
             return view('amapi.callback-error', [
-                'error' => "Erreur : Session d'inscription expirée. Recommencez."
+                'error' => "Erreur : Session d'inscription expirée. Recommencez.",
             ]);
 
         }
@@ -203,7 +205,7 @@ class AMAPICallbackController extends Controller
         $accessToken = $this->getAccessToken();
 
         // En Laravel, pour reproduire le .create(new Enterprise()) de Java :
-        $url = "https://androidmanagement.googleapis.com/v1/enterprises?" . http_build_query([
+        $url = 'https://androidmanagement.googleapis.com/v1/enterprises?'.http_build_query([
             'projectId' => $projectId,
             'enterpriseToken' => $enterpriseToken,
             'signupUrlName' => $signupUrlName,
@@ -220,7 +222,6 @@ class AMAPICallbackController extends Controller
 
             // C'est le enterprise.getName() final (ex: enterprises/LC012345)
 
-
             Log::info('AMAPI Enterprise created successfully', [
                 'enterprise_id' => $enterprise['name'],
             ]);
@@ -231,16 +232,14 @@ class AMAPICallbackController extends Controller
             // Afficher une page de succès
             return view('amapi.callback-success', [
                 'enterprise_id' => $enterprise['name'],
-                'admin_email' => "er@gmail.com",
+                'admin_email' => 'er@gmail.com',
             ]);
         }
 
-         return view('amapi.callback-error', [
-                'error' => $response->body()
-            ]);
+        return view('amapi.callback-error', [
+            'error' => $response->body(),
+        ]);
     }
-
-
 
     /**
      * Obtient un access token
@@ -249,7 +248,7 @@ class AMAPICallbackController extends Controller
     {
         $serviceAccountPath = storage_path('app/public/trueline-payguard-amapi-556ed97a2e37.json');
 
-        $client = new \Google\Client();
+        $client = new \Google\Client;
         $client->setAuthConfig($serviceAccountPath);
         $client->addScope('https://www.googleapis.com/auth/androidmanagement');
 

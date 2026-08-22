@@ -11,14 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('phones', function (Blueprint $table) {
+        Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
-            $table->string('brand');
-            $table->string('model');
-            $table->integer('stock');
-            $table->decimal('price', 10, 2);
-            $table->enum('status', ['available', 'reserved', 'sold'])->default('available');
-            $table->text('description')->nullable();
+            $table->foreignId('phone_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity');
+            $table->enum('type', ['entrer', 'sortir']);
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -28,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('phones');
+        Schema::dropIfExists('stock_movements');
     }
 };

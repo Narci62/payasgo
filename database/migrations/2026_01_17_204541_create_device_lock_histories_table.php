@@ -23,7 +23,7 @@ return new class extends Migration
                 'INACTIVITY_14_DAYS',   // Inactivité 14 jours
                 'MANUAL_ADMIN',         // Action manuelle admin
                 'PAYMENT_RECEIVED',     // Paiement reçu
-                'ADMIN_OVERRIDE'        // Override administrateur
+                'ADMIN_OVERRIDE',        // Override administrateur
             ]);
 
             // Résultat

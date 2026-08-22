@@ -10,7 +10,7 @@ class DeviceLockHistory extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'executed_at' => 'datetime'
+        'executed_at' => 'datetime',
     ];
 
     public function device(): BelongsTo

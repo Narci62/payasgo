@@ -17,6 +17,4 @@ class ListDevices extends ListRecords
 
         ];
     }
-
-
 }

@@ -2,16 +2,15 @@
 
 namespace App\Filament\Resources\FinancingPlans\Pages;
 
-use Carbon\Carbon;
-use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\FinancingPlans\FinancingPlanResource;
 use App\Models\Phone;
 use App\Services\AMAPIClientService;
 use App\Services\DeviceService;
-use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Exceptions\Halt;
-
+use Illuminate\Support\Facades\Cache;
 
 class CreateFinancingPlan extends CreateRecord
 {
@@ -33,20 +32,20 @@ class CreateFinancingPlan extends CreateRecord
                 ->danger()
                 ->send();
 
-            throw new Halt();
+            throw new Halt;
         }
 
         $device_name = $phone->brand;
 
-        $device = new DeviceService();
+        $device = new DeviceService;
         $createdDevice = $device->createDevice([
             'phone_id' => $formData['phone_id'],
-            'device_id' => "manual-" . uniqid(),
+            'device_id' => 'manual-'.uniqid(),
             'device_name' => $device_name,
             'client_id' => $formData['client_id'],
         ]);
 
-        //call api to create device in google amapi
+        // call api to create device in google amapi
         // $device->createDeviceInAmapi($createdDevice);
 
         // save device_id in cache to be used in afterCreate to update financing plan with device id
@@ -68,14 +67,11 @@ class CreateFinancingPlan extends CreateRecord
         $remaining_balance = $data['total_price'] - $data['down_payment'];
         $next_offline_unlock_code = $financing_plan_service->nextOfflineUnlockCode();
 
-
-
         $data['remaining_balance'] = $remaining_balance;
         $data['next_offline_unlock_code'] = $next_offline_unlock_code;
         $data['next_payment_due_date'] = $date_payment_due;
         $data['grace_period_ends_at'] = $grace_period_ends_at;
         $data['status'] = 'active';
-
 
         return $data;
     }
@@ -84,22 +80,20 @@ class CreateFinancingPlan extends CreateRecord
     {
         $financing_plan = $this->record;
 
-
         // update financing plan with device id
         $financing_plan->update([
             'device_id' => Cache::pull('created_device_id'),
         ]);
 
         // create enrollment token for google amapi enrollment
-        $amapi_enrollment_token = (new AMAPIClientService())->generateProvisioningQRCode($financing_plan->device);
+        $amapi_enrollment_token = (new AMAPIClientService)->generateProvisioningQRCode($financing_plan->device);
         // dd($amapi_enrollment_token);
 
-
         // save payment histories
-        (new \App\Services\PaymentService())->store([
+        (new \App\Services\PaymentService)->store([
             'financing_plan_id' => $financing_plan->id,
             'amount' => $financing_plan->down_payment,
-            'method' => "manual",
+            'method' => 'manual',
             'transaction_id' => uniqid('txn'),
             'status' => 'completed',
             'paid_at' => now(),

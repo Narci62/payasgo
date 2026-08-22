@@ -12,9 +12,9 @@ class DeviceObserver
     public function created(Device $device): void
     {
         // Add financing plan
-      //  $device->financingPlan()->create();
+        //  $device->financingPlan()->create();
 
-      // update stock in Phone model
+        // update stock in Phone model
         if ($device->phone_id) {
             $phone = $device->phone;
             $phone->decrement('stock');

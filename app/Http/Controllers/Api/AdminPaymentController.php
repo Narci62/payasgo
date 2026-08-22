@@ -31,7 +31,7 @@ class AdminPaymentController extends Controller
             $validated['transaction_id'] ?? null
         );
 
-        if (!$success) {
+        if (! $success) {
             return response()->json(['message' => 'Le traitement du paiement a échoué.'], 500);
         }
 

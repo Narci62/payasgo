@@ -13,9 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
-    public function __construct(private ClientService $clientService)
-    {
-    }
+    public function __construct(private ClientService $clientService) {}
 
     /**
      * Display a listing of the resource.
@@ -42,9 +40,9 @@ class ClientController extends Controller
 
         $validated = $request->validated();
 
-       // dd($validated);
+        // dd($validated);
 
-        $client = DB::transaction(function() use ($validated) {
+        $client = DB::transaction(function () use ($validated) {
 
             $client = $this->clientService->createClient($validated);
 
@@ -55,33 +53,29 @@ class ClientController extends Controller
             //     ...$validated
             // ]);
 
-
             return $client;
         });
 
-
-        return (new ClientRessource($client));
+        return new ClientRessource($client);
     }
 
     public function getUserByDeviceToken(Request $request)
     {
-        $identifiant_client = $request->input("matricule");
+        $identifiant_client = $request->input('matricule');
 
         $client = $this->clientService->getClientByDeviceToken($identifiant_client);
 
-
-        if (!$client) {
+        if (! $client) {
             return response()->json(['message' => 'Client not found'], 404);
         }
 
         $registrationTokens = $client->registrationTokens;
-        $registrationToken = $registrationTokens->where("used_at", null)->first();
+        $registrationToken = $registrationTokens->where('used_at', null)->first();
 
-      //  dd($registrationToken);
+        //  dd($registrationToken);
 
-        if(!$registrationToken)
-        {
-            return response()->json(['message' => "Token has already used"], 400);
+        if (! $registrationToken) {
+            return response()->json(['message' => 'Token has already used'], 400);
         }
 
         return new CheckTokenResource($client);

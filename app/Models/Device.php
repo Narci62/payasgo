@@ -2,39 +2,39 @@
 
 namespace App\Models;
 
+use App\Services\DeviceMonitoringService;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use App\Services\DeviceMonitoringService;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Device extends Model
 {
     /** @use HasFactory<\Database\Factories\DeviceFactory> */
-    use HasFactory, HasApiTokens, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $guarded = [];
 
-    public function client() : BelongsTo
+    public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
     }
 
-    public function phone() : BelongsTo
+    public function phone(): BelongsTo
     {
         return $this->belongsTo(Phone::class);
     }
 
-    public function financingPlan() : HasOne
+    public function financingPlan(): HasOne
     {
         return $this->hasOne(Financing_plan::class);
     }
 
-    public function registrationToken() : HasOne
+    public function registrationToken(): HasOne
     {
         return $this->hasOne(Registration_token::class);
     }
@@ -56,7 +56,7 @@ class Device extends Model
      */
     public function routeNotificationForFcm()
     {
-        //return $this->fcm_token;
+        // return $this->fcm_token;
         return $this->getDeviceTokens();
     }
 
@@ -76,6 +76,7 @@ class Device extends Model
     public function shouldBeLocked(): bool
     {
         $monitoringService = app(DeviceMonitoringService::class);
+
         return $monitoringService->shouldDeviceBeLocked($this);
     }
 
@@ -88,4 +89,28 @@ class Device extends Model
                $this->amapiDevice?->amapi_state === 'DISABLED';
     }
 
+    /**
+     * Vérifie si l'appareil est libéré du contrôle AMAPI
+     * (plan payé + plus de device AMAPI associé)
+     */
+    public function isLiberated(): bool
+    {
+        return $this->isFullyPaid() && ! $this->amapiDevice;
+    }
+
+    /**
+     * Vérifie si le plan de financement est entièrement payé
+     */
+    public function isFullyPaid(): bool
+    {
+        $plan = $this->financingPlan;
+
+        if (! $plan) {
+            return false;
+        }
+
+        // Utiliser getRawOriginal car l'accessor transforme 'paid_in_full' en 'soldé'
+        return $plan->getRawOriginal('status') === 'paid_in_full' &&
+               ($plan->remaining_balance ?? 0) == 0;
+    }
 }

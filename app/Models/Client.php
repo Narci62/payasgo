@@ -2,21 +2,20 @@
 
 namespace App\Models;
 
-
+use App\Services\ClientService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Services\ClientService;
 
 class Client extends Model
 {
     protected $guarded = [];
 
-    public function devices() : HasMany
+    public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
     }
 
-    public function registrationTokens() : HasMany
+    public function registrationTokens(): HasMany
     {
         return $this->hasMany(Registration_token::class);
     }
@@ -31,6 +30,4 @@ class Client extends Model
             $client->reference = $reference;
         });
     }
-
-
 }

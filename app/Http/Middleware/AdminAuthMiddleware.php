@@ -15,7 +15,7 @@ class AdminAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->tokenCan('admin:*')) {
+        if (! $request->user() || ! $request->user()->tokenCan('admin:*')) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 

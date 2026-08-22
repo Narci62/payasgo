@@ -14,19 +14,19 @@ class ClientRessource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        //$this->loadMissing(['registrationTokens']);
+        // $this->loadMissing(['registrationTokens']);
         return [
-            "message" => "Client crée avec success",
-            "client" => [
-                "full_name" => $this->full_name,
-                "address" => $this->address,
-                "phone_number" => $this->phone_number,
-                "identity_document_type" => $this->identity_document_type,
-                "identity_document_number" => $this->identity_document_number,
-                "identity_document_path" => asset("storage/" . $this->identity_document_path),
-                "identifiant_client" => $this->reference,
-                "created_at" => $this->created_at,
-            ]
+            'message' => 'Client crée avec success',
+            'client' => [
+                'full_name' => $this->full_name,
+                'address' => $this->address,
+                'phone_number' => $this->phone_number,
+                'identity_document_type' => $this->identity_document_type,
+                'identity_document_number' => $this->identity_document_number,
+                'identity_document_path' => asset('storage/'.$this->identity_document_path),
+                'identifiant_client' => $this->reference,
+                'created_at' => $this->created_at,
+            ],
         ];
     }
 }

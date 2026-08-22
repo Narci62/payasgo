@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
+use Google\Client as GoogleClient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Google\Client as GoogleClient;
 
 class EnableAndroidManagementAPI extends Command
 {
     protected $signature = 'amapi:enable';
+
     protected $description = 'Vérifie et active l\'API Android Management';
 
     public function handle()
@@ -20,6 +21,7 @@ class EnableAndroidManagementAPI extends Command
 
         if (empty($projectId)) {
             $this->error('❌ AMAPI_PROJECT_ID non configuré dans .env');
+
             return Command::FAILURE;
         }
 
@@ -47,8 +49,9 @@ class EnableAndroidManagementAPI extends Command
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->newLine();
 
-        if (!$this->confirm('Avez-vous activé l\'API ?', false)) {
+        if (! $this->confirm('Avez-vous activé l\'API ?', false)) {
             $this->warn('⏸️  Relancez cette commande après avoir activé l\'API');
+
             return Command::SUCCESS;
         }
 
@@ -58,8 +61,9 @@ class EnableAndroidManagementAPI extends Command
         try {
             $accessToken = $this->getAccessToken();
 
-            if (!$accessToken) {
+            if (! $accessToken) {
                 $this->error('❌ Impossible d\'obtenir le token');
+
                 return Command::FAILURE;
             }
 
@@ -67,13 +71,14 @@ class EnableAndroidManagementAPI extends Command
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$accessToken}",
                 'Content-Type' => 'application/json',
-            ])->post("https://androidmanagement.googleapis.com/v1/signupUrls", [
+            ])->post('https://androidmanagement.googleapis.com/v1/signupUrls', [
                 'projectId' => $projectId,
             ]);
 
             if ($response->status() === 404) {
                 $this->error('❌ L\'API ne semble toujours pas activée');
                 $this->warn('   Attendez 1-2 minutes et réessayez');
+
                 return Command::FAILURE;
             }
 
@@ -83,6 +88,7 @@ class EnableAndroidManagementAPI extends Command
                 $this->newLine();
                 $this->line('Prochaine étape :');
                 $this->comment('   php artisan amapi:create-enterprise');
+
                 return Command::SUCCESS;
             }
 
@@ -91,6 +97,7 @@ class EnableAndroidManagementAPI extends Command
                 $this->newLine();
                 $this->line('Prochaine étape :');
                 $this->comment('   php artisan amapi:create-enterprise');
+
                 return Command::SUCCESS;
             }
 
@@ -98,7 +105,8 @@ class EnableAndroidManagementAPI extends Command
             $this->line($response->body());
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur : ' . $e->getMessage());
+            $this->error('❌ Erreur : '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
@@ -110,12 +118,13 @@ class EnableAndroidManagementAPI extends Command
         try {
             $serviceAccountPath = config('services.amapi.service_account_json');
 
-            if (!file_exists($serviceAccountPath)) {
+            if (! file_exists($serviceAccountPath)) {
                 $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
+
                 return null;
             }
 
-            $client = new GoogleClient();
+            $client = new GoogleClient;
             $client->setAuthConfig($serviceAccountPath);
             $client->addScope('https://www.googleapis.com/auth/androidmanagement');
 
@@ -124,7 +133,8 @@ class EnableAndroidManagementAPI extends Command
             return $token['access_token'] ?? null;
 
         } catch (\Exception $e) {
-            $this->error('Erreur token : ' . $e->getMessage());
+            $this->error('Erreur token : '.$e->getMessage());
+
             return null;
         }
     }

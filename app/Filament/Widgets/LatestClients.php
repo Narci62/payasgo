@@ -3,12 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Client;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
-use Filament\Actions\BulkActionGroup;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 
 class LatestClients extends TableWidget
 {

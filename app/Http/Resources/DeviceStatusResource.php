@@ -17,9 +17,8 @@ class DeviceStatusResource extends JsonResource
     {
         $financingPlan = $this->financingPlan;
 
-
         // Si le plan n'existe pas ou est déjà entièrement payé, tout est OK.
-        if (!$financingPlan || $financingPlan->status === 'paid_in_full') {
+        if (! $financingPlan || $financingPlan->getRawOriginal('status') === 'paid_in_full') {
             return $this->formatActiveResponse($financingPlan);
         }
 
@@ -54,9 +53,9 @@ class DeviceStatusResource extends JsonResource
                 'next_offline_unlock_code' => $this->financingPlan?->next_offline_unlock_code,
                 'amount_paid' => $this->financingPlan?->total_price - $this->financingPlan?->remaining_balance,
                 'amount_remaining' => $this->financingPlan?->remaining_balance,
-                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
-                'identifiant_client' => "Référence client : " . $this->client?->reference,
-                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
+                'payment_instructions' => '*880*41*38761*'.(int) $this->financingPlan?->installment_amount.'*'.$this->client?->reference.'#',
+                'identifiant_client' => 'Référence client : '.$this->client?->reference,
+                'uninstall_code' => $this->financingPlan?->uninstall_code,
 
             ],
             'config' => [
@@ -77,12 +76,12 @@ class DeviceStatusResource extends JsonResource
             'lock_screen_info' => [
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard. Téléphone suspendu',
-                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
+                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ').' FCFA',
+                'payment_instructions' => '*880*41*38761*'.(int) $this->financingPlan?->installment_amount.'*'.$this->client?->reference.'#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
                 'support_phone_number' => '+229 01 76 65 65',
-                'identifiant_client' => "Référence client : " . $this->client?->reference,
-                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
+                'identifiant_client' => 'Référence client : '.$this->client?->reference,
+                'uninstall_code' => $this->financingPlan?->uninstall_code,
 
             ],
             'config' => [
@@ -90,7 +89,6 @@ class DeviceStatusResource extends JsonResource
             ],
         ];
     }
-
 
     /**
      * Formate la réponse pour un appareil en retard de paiement.
@@ -103,12 +101,12 @@ class DeviceStatusResource extends JsonResource
             'lock_screen_info' => [
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard et vous avez dépassé la période de grâce. Veuillez régler votre facture pour débloquer votre appareil.',
-                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ') . ' FCFA',
-                'payment_instructions' => '*880*41*38761*'. (int) $this->financingPlan?->installment_amount .'*' . $this->client?->reference  .'#',
+                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ').' FCFA',
+                'payment_instructions' => '*880*41*38761*'.(int) $this->financingPlan?->installment_amount.'*'.$this->client?->reference.'#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
                 'support_phone_number' => '+229 01 76 65 65',
-                'identifiant_client' => "Référence client : " . $this->client?->reference,
-                'uninstall_code' =>  $this->financingPlan?->uninstall_code,
+                'identifiant_client' => 'Référence client : '.$this->client?->reference,
+                'uninstall_code' => $this->financingPlan?->uninstall_code,
 
             ],
             'config' => [

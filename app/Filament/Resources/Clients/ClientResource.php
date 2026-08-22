@@ -2,40 +2,28 @@
 
 namespace App\Filament\Resources\Clients;
 
-use BackedEnum;
-use App\Models\Client;
-use Filament\Tables\Table;
-use Filament\Schemas\Schema;
-use Filament\Actions\EditAction;
-use Filament\Resources\Resource;
-
-use Filament\Actions\ActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Tables\Filters\Filter;
-use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Http;
-use Filament\Actions\BulkActionGroup;
-use Filament\Forms\Components\Select;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Tables\Columns\IconColumn;
-
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Filters\SelectFilter;
-
-
-use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\Clients\Pages\CreateClient;
 use App\Filament\Resources\Clients\Pages\EditClient;
 use App\Filament\Resources\Clients\Pages\ListClients;
-use App\Filament\Resources\Clients\Pages\CreateClient;
-use App\Filament\Resources\Clients\Schemas\ClientForm;
-use App\Filament\Resources\Clients\Tables\ClientsTable;
-
-
-
+use App\Models\Client;
+use BackedEnum;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ClientResource extends Resource
 {
@@ -45,9 +33,9 @@ class ClientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'full_name';
 
-    # protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
-    #protected static ?string $navigationGroup = 'Gestion du magasin';
-    # protected static ?int $navigationSort = 1; // Ordre dans la navigation
+    // protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+    // protected static ?string $navigationGroup = 'Gestion du magasin';
+    // protected static ?int $navigationSort = 1; // Ordre dans la navigation
 
     public static function form(Schema $schema): Schema
     {
@@ -76,9 +64,9 @@ class ClientResource extends Resource
                             ->visibleOn('edit'),
                         TextInput::make('address')
                             ->label('Adresse géographique')
-                            ->placeholder("123 Main St, Anytown, Porto")
+                            ->placeholder('123 Main St, Anytown, Porto')
                             ->required()
-                            ->maxLength(255)
+                            ->maxLength(255),
                     ])->columns(2), // 2 colonnes pour cette section
 
                 Section::make('Plus de renseignement')
@@ -89,7 +77,7 @@ class ClientResource extends Resource
                             ->required(),
 
                         TextInput::make('ifu')
-                            ->label("Numéro IFU")
+                            ->label('Numéro IFU')
                             ->nullable(),
 
                         Select::make('identity_document_type')
@@ -98,7 +86,7 @@ class ClientResource extends Resource
                                 'national_id' => 'Carte Nationale d’Identité',
                                 'passport' => 'Passeport',
                                 'driver_licence' => 'Permis de conduire',
-                                'cip' => "CIP"
+                                'cip' => 'CIP',
                             ])
                             ->searchable()
                             ->required(),
@@ -120,9 +108,6 @@ class ClientResource extends Resource
 
             ]);
     }
-
-
-
 
     public static function table(Table $table): Table
     {
@@ -173,8 +158,7 @@ class ClientResource extends Resource
                 Filter::make('created_recently')
                     ->label('Inscrits récents (7 derniers jours)')
                     ->query(
-                        fn(Builder $query): Builder =>
-                        $query->where('created_at', '>=', now()->subDays(7))
+                        fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDays(7))
                     )
                     ->toggle(),
             ])

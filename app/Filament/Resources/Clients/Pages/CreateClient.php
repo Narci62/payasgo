@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Clients\Pages;
 
+use App\Filament\Resources\Clients\ClientResource;
 use App\Models\Client;
-use Illuminate\Support\Facades\Http;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use App\Filament\Resources\Clients\ClientResource;
+use Illuminate\Support\Facades\Http;
 
 class CreateClient extends CreateRecord
 {
@@ -35,7 +35,6 @@ class CreateClient extends CreateRecord
     //             ->body('Client créé avec succès : ' . ($clientData['reference'] ?? ''))
     //             ->success()
     //             ->send();
-
 
     //         return new \App\Models\Client($clientData);
     //         // Si tu veux aussi l'enregistrer localement (facultatif)

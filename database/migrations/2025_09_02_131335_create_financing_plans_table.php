@@ -13,18 +13,18 @@ return new class extends Migration
     {
         Schema::create('financing_plans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("device_id")->nullable()->constrained()->onDelete("cascade");
-            $table->foreignId("registration_token_id")->constrained("registration_tokens")->onDelete("cascade");
-            $table->decimal("total_price", 10, 2)->comment("Le prix total de vente du téléphone pour ce client.");
-            $table->decimal("down_payment", 10, 2)->default(0)->comment("L'acompte initial payé par le client lors de l'achat.");
-            $table->decimal("remaining_balance", 10, 2)->default(0)->comment("Le solde restant dû. Ce montant est décrémenté après chaque paiement.");
-            $table->decimal("installment_amount", 10, 2)->default(0)->comment("Le montant fixe de chaque versement périodique");
-            $table->enum("status", ["active", "paid_in_full", "defaulted"])->default("defaulted");
-            $table->integer("days_interval")->default(30)->comment("intervalle de jours de paiement");
-            $table->datetime("next_payment_due_date")->nullable()->comment("La date à laquelle le prochain paiement est dû.");
-            $table->date("grace_period_ends_at")->nullable()->comment("La date à laquelle la période de grâce se termine.");
-            $table->string("next_offline_unlock_code")->nullable()->comment("Le code de déverrouillage hors ligne pour le prochain paiement.");
-            $table->string("uninstall_code")->nullable()->unique()->comment("Le code unique permettant de désinstaller l'application une fois le plan de financement entièrement payé.");
+            $table->foreignId('device_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('registration_token_id')->constrained('registration_tokens')->onDelete('cascade');
+            $table->decimal('total_price', 10, 2)->comment('Le prix total de vente du téléphone pour ce client.');
+            $table->decimal('down_payment', 10, 2)->default(0)->comment("L'acompte initial payé par le client lors de l'achat.");
+            $table->decimal('remaining_balance', 10, 2)->default(0)->comment('Le solde restant dû. Ce montant est décrémenté après chaque paiement.');
+            $table->decimal('installment_amount', 10, 2)->default(0)->comment('Le montant fixe de chaque versement périodique');
+            $table->enum('status', ['active', 'paid_in_full', 'defaulted'])->default('defaulted');
+            $table->integer('days_interval')->default(30)->comment('intervalle de jours de paiement');
+            $table->datetime('next_payment_due_date')->nullable()->comment('La date à laquelle le prochain paiement est dû.');
+            $table->date('grace_period_ends_at')->nullable()->comment('La date à laquelle la période de grâce se termine.');
+            $table->string('next_offline_unlock_code')->nullable()->comment('Le code de déverrouillage hors ligne pour le prochain paiement.');
+            $table->string('uninstall_code')->nullable()->unique()->comment("Le code unique permettant de désinstaller l'application une fois le plan de financement entièrement payé.");
             $table->timestamps();
             $table->softDeletes();
         });

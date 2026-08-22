@@ -13,12 +13,12 @@ class Financing_plan extends Model
 
     protected $guarded = [];
 
-    public function payments() : HasMany
+    public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
-    public function registrationToken() : BelongsTo
+    public function registrationToken(): BelongsTo
     {
         return $this->belongsTo(Registration_token::class);
     }
@@ -40,11 +40,10 @@ class Financing_plan extends Model
                 break;
 
             default:
-                $value = "En attente";
+                $value = 'En attente';
                 break;
         }
 
-       return $value;
+        return $value;
     }
 }
-

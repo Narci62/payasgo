@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 class CheckDevicesCommand extends Command
 {
     protected $signature = 'devices:check-lock-status';
+
     protected $description = 'Vérifie tous les appareils et applique les verrouillages nécessaires';
 
     public function handle(DeviceMonitoringService $monitoringService): int
@@ -31,9 +32,7 @@ class CheckDevicesCommand extends Command
 
         if (count($results['errors']) > 0) {
             $this->newLine();
-            $this->error("⚠️  Erreurs rencontrées : " . count($results['errors']));
-
-            
+            $this->error('⚠️  Erreurs rencontrées : '.count($results['errors']));
 
             foreach ($results['errors'] as $error) {
                 $this->error("  Device #{$error['device_id']}: {$error['error']}");

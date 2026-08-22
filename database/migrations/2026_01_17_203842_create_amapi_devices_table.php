@@ -25,7 +25,7 @@ return new class extends Migration
                 'ACTIVE',           // Appareil actif et fonctionnel
                 'DISABLED',         // Appareil désactivé (verrouillé)
                 'DELETED',          // Appareil supprimé de AMAPI
-                'PROVISIONING'      // En cours de provisioning
+                'PROVISIONING',      // En cours de provisioning
             ])->default('PROVISIONING');
 
             // Informations de provisioning

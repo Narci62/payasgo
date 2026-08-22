@@ -2,22 +2,24 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use Google\Client as GoogleClient;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CreateAMAPIPolicies extends Command
 {
     protected $signature = 'amapi:create-policies';
+
     protected $description = 'Crée les politiques par défaut (default_policy et locked_policy)';
 
     public function handle()
     {
         $enterpriseId = config('services.amapi.enterprise_id');
 
-        if (!$enterpriseId) {
+        if (! $enterpriseId) {
             $this->error('❌ AMAPI_ENTERPRISE_ID non configuré dans .env');
+
             return Command::FAILURE;
         }
 
@@ -26,39 +28,41 @@ class CreateAMAPIPolicies extends Command
         try {
             $accessToken = $this->getAccessToken();
 
-            if (!$accessToken) {
+            if (! $accessToken) {
                 $this->error('❌ Impossible d\'obtenir le token d\'accès');
+
                 return Command::FAILURE;
             }
 
             // 1. Créer la politique par défaut (appareil actif)
             $this->info('📝 Création de default_policy...');
-          //  $defaultPolicyId = $this->createDefaultPolicy($accessToken, $enterpriseId);
+            $defaultPolicyId = $this->createDefaultPolicy($accessToken, $enterpriseId);
 
-           // if ($defaultPolicyId) {
-             //   $this->info("✅ default_policy créée : {$defaultPolicyId}");
-            //}
-
-            //2. Créer la politique de verrouillage
-            $this->info('📝 Création de locked_policy...');
-            $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
-
-            if ($lockedPolicyId) {
-                $this->info("✅ locked_policy créée : {$lockedPolicyId}");
+            if ($defaultPolicyId) {
+                $this->info("✅ default_policy créée : {$defaultPolicyId}");
             }
+
+            // 2. Créer la politique de verrouillage
+            // $this->info('📝 Création de locked_policy...');
+            // $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
+
+            // if ($lockedPolicyId) {
+            //     $this->info("✅ locked_policy créée : {$lockedPolicyId}");
+            // }
 
             $this->newLine();
             $this->info('✅ Politiques créées avec succès !');
             $this->newLine();
             $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
             $this->newLine();
-          //  $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
+            //  $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
             // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
             $this->newLine();
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('❌ Erreur : ' . $e->getMessage());
+            $this->error('❌ Erreur : '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -80,9 +84,9 @@ class CreateAMAPIPolicies extends Command
         if ($response->failed()) {
             Log::error('AMAPI Policy Error', [
                 'constructed_url' => $url,
-                'error_detail' => $response->json() ?? $response->body()
+                'error_detail' => $response->json() ?? $response->body(),
             ]);
-            $this->error('Échec création default_policy : ' . $response->body());
+            $this->error('Échec création default_policy : '.$response->body());
 
             return null;
         }
@@ -97,7 +101,6 @@ class CreateAMAPIPolicies extends Command
         $name = "enterprises/{$enterpriseId}/policies/{$policyId}";
         $url = "https://androidmanagement.googleapis.com/v1/{$name}";
 
-
         $policy = $this->getLockedPolicyConfig();
 
         $response = Http::withHeaders([
@@ -106,168 +109,313 @@ class CreateAMAPIPolicies extends Command
         ])->patch($url, $policy);
 
         if ($response->failed()) {
-            $this->error('Échec création locked_policy : ' . $response->body());
+            $this->error('Échec création locked_policy : '.$response->body());
+
             return null;
         }
 
         return $policyId;
     }
+
+    // private function getDefaultPolicyConfig(): array
+    // {
+    //     return [
+    //         'applications' => [
+    //             [
+    //                 'packageName' => 'com.trueline.mdm',
+    //                 'installType' => 'FORCE_INSTALLED',
+    //                 'defaultPermissionPolicy' => 'GRANT',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.facebook.katana',
+    //                 'installType' => 'FORCE_INSTALLED',
+    //                 'defaultPermissionPolicy' => 'GRANT',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.android.chrome',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.android.vending',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.whatsapp',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.instagram.android',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.google.android.youtube',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.microsoft.office.word',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.adobe.reader',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.twitter.android',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.facebook.lite',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.zhiliaoapp.musically',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'com.microsoft.office.excel',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+
+    //             [
+    //                 'packageName' => 'org.telegram.messenger',
+    //                 'installType' => 'AVAILABLE',
+    //             ],
+    //         ],
+
+    //         'factoryResetDisabled' => true,
+    //         'safeBootDisabled' => true,
+    //         'debuggingFeaturesAllowed' => false,
+    //         'addUserDisabled' => true,
+    //         'removeUserDisabled' => true,
+
+    //         'frpAdminEmails' => [
+    //             'etstrueline@gmail.com',
+    //         ],
+
+    //         'appAutoUpdatePolicy' => 'ALWAYS',
+
+    //         'locationMode' => 'HIGH_ACCURACY',
+
+    //         'systemUpdate' => [
+    //             'type' => 'AUTOMATIC',
+    //         ],
+    //     ];
+    // }
+
     private function getDefaultPolicyConfig(): array
     {
         return [
             'applications' => [
                 [
-                   // 'packageName' => 'com.trueline.mdm',
-                    'packageName' => 'com.facebook.katana',
+                    'packageName' => 'com.trueline.mdm',
                     'installType' => 'FORCE_INSTALLED',
                     'defaultPermissionPolicy' => 'GRANT',
                 ],
 
-                [
-                    'packageName' => 'com.android.vending',
-                    'installType' => 'AVAILABLE'
-                ],
-
-                [
-                    // whatsapp
-                    'packageName' => 'com.whatsapp',
-                    'installType' => 'AVAILABLE'
-                ]
             ],
 
-            "factoryResetDisabled"  => true,
-            "frpAdminEmails"  => [
-                "etstrueline@gmail.com"
+            'playStoreMode' => 'BLACKLIST', // empecher l'accès au Play Store
+
+            'factoryResetDisabled' => true,
+            'installUnknownSourcesAllowed' => false, // empecher l'installation d'applications depuis des sources inconnues
+            'safeBootDisabled' => true, // empecher le démarrage en mode sans échec
+            'debuggingFeaturesAllowed' => true, // empecher le débogage
+            // 'addUserDisabled' => true,
+            // 'removeUserDisabled' => true,
+            // 'modifyAccountsDisabled' => true, // empecher la modification des comptes
+            'uninstallAppsDisabled' => true, // empecher la désinstallation de l'application MDM
+
+            'frpAdminEmails' => [
+                'etstrueline@gmail.com',
             ],
 
-            // "complianceRules" => [
-            //     [
-            //         "nonComplianceDetailCondition" => [
-            //             "nonComplianceReason" => "NETWORK_INFO",
-            //         ],
-            //         "packageNamesToExempt" => [],
-            //         "actionAfterDays" => 14,
-            //         "blockAction" => [
-            //             "blockAfterDays" => 0,
-            //         ]
-            //     ]
-            // ],
+            'appAutoUpdatePolicy' => 'ALWAYS', // toujours mettre à jour les applications automatiquement
 
-            "safeBootDisabled"  => true,
-            "debuggingFeaturesAllowed" => false,
-            "addUserDisabled"=> true,
-            "removeUserDisabled"=> true,
-            "systemUpdate" => [
-                "type" => "WINDOWED",
+            'locationMode' => 'HIGH_ACCURACY', // mode de localisation haute précision
+
+            'systemUpdate' => [
+                'type' => 'AUTOMATIC', // mise à jour automatique du système
             ],
-            "appAutoUpdatePolicy" => "ALWAYS",
-            "locationMode" => "SENSORS_ONLY"
-
         ];
     }
 
     private function getMiddlePolicyConfig()
     {
         return [
-            "applications" => [
+            'applications' => [
                 [
                     'packageName' => 'com.trueline.mdm',
-                    "installType" => "FORCE_INSTALLED",
-                    "defaultRuntimePermissionsPolicy" => "GRANT"
+                    'installType' => 'FORCE_INSTALLED',
+                    'defaultRuntimePermissionsPolicy' => 'GRANT',
                 ],
                 [
-                    "packageName" => "com.whatsapp",
-                    "installType" => "BLOCKED"
+                    'packageName' => 'com.whatsapp',
+                    'installType' => 'BLOCKED',
                 ],
                 [
-                    "packageName" => "com.zhiliaoapp.musically",
-                    "installType" => "BLOCKED"
+                    'packageName' => 'com.zhiliaoapp.musically',
+                    'installType' => 'BLOCKED',
                 ],
                 [
-                    "packageName" => "com.facebook.katana",
-                    "installType" => "BLOCKED"
+                    'packageName' => 'com.facebook.katana',
+                    'installType' => 'BLOCKED',
                 ],
                 [
-                    "packageName" => "com.instagram.android",
-                    "installType" => "BLOCKED"
-                ]
+                    'packageName' => 'com.instagram.android',
+                    'installType' => 'BLOCKED',
+                ],
             ],
-            "factoryResetDisabled" => true,
-            "debuggingFeaturesAllowed" => false
+            'factoryResetDisabled' => true,
+            'debuggingFeaturesAllowed' => false,
         ];
     }
+
+    // private function getLockedPolicyConfig(): array
+    // {
+    //     return [
+    //         // Application vitrine forcée (pour afficher message verrouillage)
+    //         'applications' => [
+    //             [
+    //                 "packageName" => "com.trueline.mdm",
+    //                 "installType" => "KIOSK",
+    //                 "defaultPermissionPolicy" => "GRANT"
+    //             ],
+    //         ],
+    //     ];
+    // }
 
     private function getLockedPolicyConfig(): array
     {
         return [
-            // Application vitrine forcée (pour afficher message verrouillage)
+            // === Application vitrine en mode KIOSK ===
             'applications' => [
                 [
-                    "packageName"=> "com.facebook.katana",
-                    "installType"=> "KIOSK",
-                    "defaultPermissionPolicy"=> "GRANT"
+                    'packageName' => 'com.trueline.mdm',
+                    'installType' => 'FORCE_INSTALLED',
+                    'defaultPermissionPolicy' => 'GRANT',
+                    // 'lockTaskAllowed' => true,
+                ],
+                [
+                    'packageName' => 'com.android.vending',
+                    'installType' => 'BLOCKED',
                 ],
             ],
 
-            /*
+            // === Launcher Kiosk natif de Google ===
+            // Remplace l'écran d'accueil par le launcher verrouillé de Google
+            'kioskCustomLauncherEnabled' => true,
+            // 'defaultPermissionPolicy' => 'GRANT',
 
-            // Mode kiosque STRICT : uniquement app vitrine
+            // === Personnalisation du comportement kiosk ===
             'kioskCustomization' => [
-                'deviceSettings' => 'SETTINGS_ACCESS_BLOCKED', // Bloque paramètres
-                'powerButtonActions' => 'POWER_BUTTON_BLOCKED', // Bloque bouton power
-                'statusBar' => 'NOTIFICATIONS_AND_SYSTEM_INFO_DISABLED', // Cache notifs
-                'systemErrorWarnings' => 'ERROR_AND_WARNINGS_MUTED',
-                'systemNavigation' => 'NAVIGATION_DISABLED', // Désactive navigation
+                // Bouton power : disponible (écran de verrouillage)
+                // Options: POWER_BUTTON_AVAILABLE, POWER_BUTTON_BLOCKED
+                'powerButtonActions' => 'POWER_BUTTON_AVAILABLE',
+
+                // Avertissements système (batterie faible, etc.) : visibles
+                // Options: ERROR_AND_WARNINGS_ENABLED, ERROR_AND_WARNINGS_DISABLED
+                'systemErrorWarnings' => 'ERROR_AND_WARNINGS_ENABLED',
+
+                // Barre de navigation (boutons retour/accueil/applications) : cachée
+                // Options: NAVIGATION_ENABLED, NAVIGATION_DISABLED, NAVIGATION_HOME_BUTTON_ONLY
+                'systemNavigation' => 'NAVIGATION_DISABLED',
+
+                // Barre de statut : cachée (heure, batterie, notifications)
+                // Options: NOTIFICATIONS_AND_SYSTEM_INFO_ENABLED, NOTIFICATIONS_AND_SYSTEM_INFO_DISABLED
+                'statusBar' => 'NOTIFICATIONS_AND_SYSTEM_INFO_DISABLED',
+
+                // Apparence du device en mode kiosk
+                // Options: KIOSK_CUSTOMIZATION_DEVICE_SETTINGS, KIOSK_CUSTOMIZATION_UNDEFINED
+                'deviceSettings' => 'SETTINGS_ACCESS_BLOCKED',
             ],
 
-            // RESTRICTIONS MAXIMALES
-            'bluetoothConfigDisabled' => true,     // Bloque Bluetooth
-            'cellBroadcastsConfigDisabled' => true,
-            'factoryResetDisabled' => true,        // Bloque factory reset
-            // 'keyguardDisabled' => true,            // Désactive écran de verrouillage natif
-            // 'statusBarDisabled' => true,           // Cache barre de statut
-            // 'wifiConfigDisabled' => true,          // Bloque config WiFi
+            // === Mode Play Store ===
+            // En mode locked, on passe en WHITELIST pour verrouiller totalement
+            // Seule l'app vitrine est accessible, aucune autre app ne peut être installée
+            'playStoreMode' => 'WHITELIST',
 
-            // Bloquer communications
-            'outgoingCallsDisabled' => true,       // Bloque appels sortants
-            'outgoingBeamDisabled' => true,        // Bloque NFC/Beam
-
-            // Bloquer médias et caméra
-            'cameraDisabled' => true,              // Bloque caméra
-            'screenCaptureDisabled' => true,       // Bloque screenshots
-            'adjustVolumeDisabled' => true,        // Bloque volume
-
-            // Bloquer ajout de comptes
-            'addUserDisabled' => true,
-            'accountTypesWithManagementDisabled' => ['*'],
-
-            // Bloquer installations
+            // === Sécurité maximale : blocage de toutes les échappatoires ===
+            'factoryResetDisabled' => true,
+            'safeBootDisabled' => true,
+            'debuggingFeaturesAllowed' => false,
             'installUnknownSourcesAllowed' => false,
-
-            // Bloquer modifications système
-            'mobileNetworksConfigDisabled' => true,
+            'installAppsDisabled' => true,
+            'uninstallAppsDisabled' => true,
+            'addUserDisabled' => true,
+            'removeUserDisabled' => true,
             'modifyAccountsDisabled' => true,
-            'unmuteMicrophoneDisabled' => true,
+            'mountPhysicalMediaDisabled' => true,      // Bloque USB/SD card
+            'outgoingCallsDisabled' => false,           // Bloque les appels
+            'smsDisabled' => false,                     // Bloque les SMS
+            'dataRoamingDisabled' => false,             // Bloque le roaming
+            'tetheringConfigDisabled' => false,               // Bloque le partage de connexion
+            'vpnConfigDisabled' => true,               // Bloque les VPN utilisateur
+            'wifiConfigDisabled' => false,              // Seul l'EMM configure le WiFi
+            'bluetoothConfigDisabled' => false,         // Seul l'EMM configure le Bluetooth
 
+            // === Contrôle du clavier et saisie ===
+            'setWallpaperDisabled' => true,
+            'funDisabled' => true,                     // Bloque les apps de divertissement système
 
-            // Reporting (même verrouillé, on veut les infos)
-            'statusReportingSettings' => [
-                'applicationReportsEnabled' => true,
-                'deviceSettingsEnabled' => true,
-                'softwareInfoEnabled' => true,
-                'networkInfoEnabled' => true,
-                'powerManagementEventsEnabled' => true,
-                'hardwareStatusEnabled' => true,
-            ],
+            // === Mises à jour automatiques ===
+            'appAutoUpdatePolicy' => 'ALWAYS',
 
-            // System updates toujours actifs
+            // === Localisation ===
+            'locationMode' => 'HIGH_ACCURACY',
+
+            // === Mises à jour système automatiques ===
             'systemUpdate' => [
                 'type' => 'AUTOMATIC',
-                'startMinutes' => 120,
-                'endMinutes' => 300,
+                // Optionnel: fenêtre de maintenance
+                // 'startMinutes' => 120,  // 02h00
+                // 'endMinutes' => 300,    // 05h00
             ],
 
-            */
+            // === FRP (Factory Reset Protection) ===
+            'frpAdminEmails' => [
+                'etstrueline@gmail.com',
+            ],
+
+            // === Permissions par défaut ===
+            // Toutes les permissions des apps sont refusées par défaut, sauf celles explicitement demandées
+            'defaultPermissionPolicy' => 'GRANT',
+
+            // === Clavier et IME ===
+            // Si tu veux forcer un clavier spécifique, décommente:
+            // 'permittedInputMethods' => [
+            //     [
+            //         'packageName' => 'com.google.android.inputmethod.latin',
+            //     ],
+            // ],
+
+            // === Réseau ===
+            // Si tu veux forcer un réseau WiFi spécifique:
+            // 'openNetworkConfiguration' => [
+            //     'NetworkConfigurations' => [
+            //         [
+            //             'GUID' => 'wifi-entreprise',
+            //             'Name' => 'WiFi-Trueline',
+            //             'Type' => 'WiFi',
+            //             'WiFi' => [
+            //                 'SSID' => 'WiFi-Trueline',
+            //                 'Security' => 'WPA-PSK',
+            //                 'Passphrase' => 'votre_mot_de_passe',
+            //             ],
+            //         ],
+            //     ],
+            // ],
         ];
     }
 
@@ -276,15 +424,15 @@ class CreateAMAPIPolicies extends Command
         try {
             $serviceAccountPath = config('services.amapi.service_account_json');
 
-
-            if (!file_exists($serviceAccountPath)) {
-                    dd("Le fichier est introuvable à cet endroit précis : " . $serviceAccountPath);
+            if (! file_exists($serviceAccountPath)) {
+                dd('Le fichier est introuvable à cet endroit précis : '.$serviceAccountPath);
 
                 $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
+
                 return null;
             }
 
-            $client = new GoogleClient();
+            $client = new GoogleClient;
             $client->setAuthConfig($serviceAccountPath);
             $client->addScope('https://www.googleapis.com/auth/androidmanagement');
 
@@ -292,7 +440,8 @@ class CreateAMAPIPolicies extends Command
 
             return $token['access_token'] ?? null;
         } catch (\Exception $e) {
-            $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
+            $this->error('Erreur lors de l\'obtention du token : '.$e->getMessage());
+
             return null;
         }
     }

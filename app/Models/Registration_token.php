@@ -12,12 +12,12 @@ class Registration_token extends Model
 
     protected $guarded = [];
 
-    public function device() : BelongsTo
+    public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
     }
 
-    public function client() : BelongsTo
+    public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
     }

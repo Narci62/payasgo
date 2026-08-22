@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Payment extends Model
 {
     use SoftDeletes;
-    
+
     protected $guarded = [];
 
-    public function financingPlan() : BelongsTo
+    public function financingPlan(): BelongsTo
     {
         return $this->belongsTo(Financing_plan::class);
     }

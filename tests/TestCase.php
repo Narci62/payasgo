@@ -8,5 +8,5 @@ use Illuminate\Testing\Concerns\TestDatabases;
 
 abstract class TestCase extends BaseTestCase
 {
-    use TestDatabases, RefreshDatabase;
+    use RefreshDatabase, TestDatabases;
 }

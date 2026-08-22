@@ -15,11 +15,12 @@ class CheckTokenResource extends JsonResource
     public function toArray(Request $request): array
     {
         $this->loadMissing(['registrationTokens']);
-        $registrationToken = $this->registrationTokens->where("used_at", null)->first();
+        $registrationToken = $this->registrationTokens->where('used_at', null)->first();
         $token = $registrationToken ? $registrationToken->token : null;
+
         return [
-            "client" => $this->full_name,
-            "registration_token" => $token,
+            'client' => $this->full_name,
+            'registration_token' => $token,
         ];
     }
 }

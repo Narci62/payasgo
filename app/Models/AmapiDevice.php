@@ -16,7 +16,7 @@ class AmapiDevice extends Model
         'enrolled_at' => 'datetime',
         'last_command_sent_at' => 'datetime',
         'last_amapi_sync_at' => 'datetime',
-        'amapi_metadata' => 'array'
+        'amapi_metadata' => 'array',
     ];
 
     public function device(): BelongsTo
@@ -45,7 +45,7 @@ class AmapiDevice extends Model
      */
     public function hasRecentSync(): bool
     {
-        if (!$this->last_amapi_sync_at) {
+        if (! $this->last_amapi_sync_at) {
             return false;
         }
 
@@ -60,7 +60,7 @@ class AmapiDevice extends Model
         static::creating(function ($amapiDevice) {
             if (empty($amapiDevice->amapi_device_id)) {
                 do {
-                    $amapiDevice->amapi_device_id = 'amapi_' . bin2hex(random_bytes(8));
+                    $amapiDevice->amapi_device_id = 'amapi_'.bin2hex(random_bytes(8));
                 } while (self::where('amapi_device_id', $amapiDevice->amapi_device_id)->exists());
             }
         });

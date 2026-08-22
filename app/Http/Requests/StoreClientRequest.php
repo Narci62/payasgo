@@ -21,7 +21,6 @@ class StoreClientRequest extends FormRequest
         );
     }
 
-
     /**
      * Get the validation rules that apply to the request.
      *
@@ -30,17 +29,15 @@ class StoreClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "full_name" => "required|string|max:255",
-            "phone_number" => "required|string|max:20",
-            "address" => "nullable|string",
-            "identity_document_type" => "required|string|in:passport,national_id,driver_license",
-            "identity_document_number" => "required|string|max:100",
-            "identity_document_proof" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
-            "total_price" => "required|numeric|min:0",
-            "down_payment" => "required|numeric|min:0",
-            "installment_amount" => "required|numeric|min:0",
+            'full_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'identity_document_type' => 'required|string|in:passport,national_id,driver_license',
+            'identity_document_number' => 'required|string|max:100',
+            'identity_document_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'total_price' => 'required|numeric|min:0',
+            'down_payment' => 'required|numeric|min:0',
+            'installment_amount' => 'required|numeric|min:0',
         ];
     }
 }
-
-
