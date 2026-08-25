@@ -208,7 +208,7 @@ class AMAPIClientService
                 'triggered_by_user_id' => $userId,
             ]);
 
-            // Appliquer une politique de verrouillage via AMAPI
+            // Appliquer une politique de verrouillage via AMAPI 
             $response = Http::withHeaders($this->getAuthHeaders())
                 ->patch(
                     "{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices/{$amapiDevice->amapi_device_id}",
