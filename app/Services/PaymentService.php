@@ -3,12 +3,39 @@
 namespace App\Services;
 
 use App\Models\Payment;
+use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
-    public function store(array $data)
+    /**
+     * Enregistre un paiement avec protection contre les doublons.
+     *
+     * @return array{success: bool, payment: Payment|null, duplicate: bool}
+     */
+    public function store(array $data): array
     {
-        return Payment::updateOrCreate(['transaction_id' => $data['transaction_id']], $data);
+        $existingPayment = $this->findByTransactionId($data['transaction_id']);
+
+        if ($existingPayment) {
+            Log::warning('Tentative de double paiement détectée', [
+                'transaction_id' => $data['transaction_id'],
+                'existing_status' => $existingPayment->status,
+            ]);
+
+            return [
+                'success' => true,
+                'payment' => $existingPayment,
+                'duplicate' => true,
+            ];
+        }
+
+        $payment = Payment::create($data);
+
+        return [
+            'success' => true,
+            'payment' => $payment,
+            'duplicate' => false,
+        ];
     }
 
     public function findByTransactionId($transactionId)

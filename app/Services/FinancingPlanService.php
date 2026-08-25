@@ -3,9 +3,14 @@
 namespace App\Services;
 
 use App\Helpers\Helper;
+use App\Models\AmapiSyncLog;
 use App\Models\Device;
 use App\Models\Financing_plan;
+use App\Models\User;
+use App\Notifications\AmapiSyncFailedNotification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class FinancingPlanService
 {
@@ -227,13 +232,43 @@ class FinancingPlanService
         $device = $financingPlan->device;
 
         if ($device) {
+            $action = $financingPlan->getRawOriginal('status') === 'paid_in_full' ? 'DELETE' : 'UNLOCK';
 
-            if ($financingPlan->getRawOriginal('status') === 'paid_in_full') {
-                // delete amapi device
-                (new AMAPIClientService)->deleteDevice($device, 'PAYMENT_RECEIVED');
-            } else {
-                // unlock amapi device
-                (new AMAPIClientService)->unlockDevice($device, 'PAYMENT_RECEIVED');
+            $syncLog = AmapiSyncLog::create([
+                'financing_plan_id' => $financingPlan->id,
+                'device_id' => $device->id,
+                'action' => $action,
+                'status' => 'pending',
+            ]);
+
+            try {
+                if ($action === 'DELETE') {
+                    $success = (new AMAPIClientService)->deleteDevice($device, 'PAYMENT_RECEIVED');
+                } else {
+                    $success = (new AMAPIClientService)->unlockDevice($device, 'PAYMENT_RECEIVED');
+                }
+
+                if ($success) {
+                    $syncLog->markAsSuccess();
+                    $financingPlan->update(['amapi_sync_status' => 'synced']);
+                } else {
+                    throw new \Exception('AMAPI API returned false');
+                }
+            } catch (\Exception $e) {
+                $syncLog->markAsFailed($e->getMessage());
+                $financingPlan->update([
+                    'amapi_sync_status' => 'failed',
+                    'amapi_sync_error' => $e->getMessage(),
+                ]);
+
+                Log::error('AMAPI sync failed after payment', [
+                    'financing_plan_id' => $financingPlan->id,
+                    'device_id' => $device->id,
+                    'action' => $action,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $this->notifyAdminsOfSyncFailure($financingPlan, $device, $action, $e->getMessage());
             }
         }
 
@@ -257,5 +292,21 @@ class FinancingPlanService
         } while (Financing_plan::where('next_offline_unlock_code', $next_offline_unlock_code)->exists());
 
         return $next_offline_unlock_code;
+    }
+
+    private function notifyAdminsOfSyncFailure(Financing_plan $plan, Device $device, string $action, string $error): void
+    {
+        $admins = User::where('is_admin', true)->get();
+
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        Notification::send($admins, new AmapiSyncFailedNotification(
+            $plan,
+            $device,
+            $action,
+            $error
+        ));
     }
 }
