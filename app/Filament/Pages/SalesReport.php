@@ -26,6 +26,11 @@ class SalesReport extends Page implements HasTable
 
     protected static ?string $title = 'Fiche de vente';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->hasPermissionTo('view-sales-report');
+    }
+
     public function table(Table $table): Table
     {
         return $table

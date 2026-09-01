@@ -20,7 +20,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -33,6 +32,26 @@ class PhoneResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-device-phone-mobile';
 
     protected static ?string $recordTitleAttribute = 'brand';
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasPermissionTo('view-phones');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasPermissionTo('create-phones');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -104,13 +123,15 @@ class PhoneResource extends Resource
                 TextColumn::make('stock')
                     ->label('Stock'),
 
-                BadgeColumn::make('status')
+                TextColumn::make('status')
                     ->label('Statut')
-                    ->colors([
-                        'success' => 'available',
-                        'warning' => 'reserved',
-                        'danger' => 'sold',
-                    ])
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'available' => 'success',
+                        'reserved' => 'warning',
+                        'sold' => 'danger',
+                        default => 'gray',
+                    })
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'available' => 'Disponible',
                         'reserved' => 'Réservé',

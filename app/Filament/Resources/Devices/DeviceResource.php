@@ -24,6 +24,26 @@ class DeviceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'device_name';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasPermissionTo('view-devices');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasPermissionTo('create-devices');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return DeviceForm::configure($schema);

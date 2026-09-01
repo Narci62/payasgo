@@ -25,6 +25,8 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'imat',
+        'phone',
     ];
 
     /**
@@ -52,7 +54,15 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // Par exemple : accès réservé aux super-admins
-        return $this->hasRole('super-admin');
+        return $this->hasAnyPermission([
+            'view-clients',
+            'view-devices',
+            'view-phones',
+            'view-financing-plans',
+            'view-users',
+            'manage-roles',
+            'view-dashboard',
+            'view-sales-report',
+        ]);
     }
 }

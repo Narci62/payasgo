@@ -44,6 +44,26 @@ class FinancingPlanResource extends Resource
     // change breadcrumb title
     protected static ?string $breadcrumbTitle = 'Plans de financement';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasPermissionTo('view-financing-plans');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasPermissionTo('create-financing-plans');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

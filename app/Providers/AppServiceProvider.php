@@ -2,36 +2,32 @@
 
 namespace App\Providers;
 
+use App\Models\Client;
 use App\Models\Device;
+use App\Models\Financing_plan;
+use App\Models\Phone;
+use App\Models\User;
 use App\Observers\DeviceObserver;
-use App\Services\FcmNotificationService;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
+use App\Policies\ClientPolicy;
+use App\Policies\DevicePolicy;
+use App\Policies\FinancingPlanPolicy;
+use App\Policies\PhonePolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Kreait\Firebase\Messaging;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        // $this->app->bind(ClientInterface::class, function ($app) {
-        //     return new Client();
-        // });
+    public function register(): void {}
 
-        // $this->app->singleton(FcmNotificationService::class, function ($app) {
-        //     $messaging = new Messaging();
-        //     return new FcmNotificationService($messaging);
-        // });
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Device::observe(DeviceObserver::class);
+
+        Gate::policy(Client::class, ClientPolicy::class);
+        Gate::policy(Device::class, DevicePolicy::class);
+        Gate::policy(Financing_plan::class, FinancingPlanPolicy::class);
+        Gate::policy(Phone::class, PhonePolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 }

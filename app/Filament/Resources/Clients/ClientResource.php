@@ -33,6 +33,26 @@ class ClientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'full_name';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasPermissionTo('view-clients');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasPermissionTo('create-clients');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
     // protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
     // protected static ?string $navigationGroup = 'Gestion du magasin';
     // protected static ?int $navigationSort = 1; // Ordre dans la navigation
