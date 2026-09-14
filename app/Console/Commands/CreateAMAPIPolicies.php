@@ -11,7 +11,7 @@ class CreateAMAPIPolicies extends Command
 {
     protected $signature = 'amapi:create-policies';
 
-    protected $description = 'Crée les politiques par défaut (default_policy et locked_policy)';
+    protected $description = 'Crée les politiques AMAPI (default, cope, locked)';
 
     public function handle()
     {
@@ -42,21 +42,30 @@ class CreateAMAPIPolicies extends Command
                 $this->info("✅ default_policy créée : {$defaultPolicyId}");
             }
 
-            // 2. Créer la politique de verrouillage
-            // $this->info('📝 Création de locked_policy...');
-            // $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
+            // 2. Créer la politique COPE (futurs enrollments)
+            $this->info('📝 Création de cope_policy...');
+            $copePolicyId = $this->createCopePolicy($accessToken, $enterpriseId);
 
-            // if ($lockedPolicyId) {
-            //     $this->info("✅ locked_policy créée : {$lockedPolicyId}");
-            // }
+            if ($copePolicyId) {
+                $this->info("✅ cope_policy créée : {$copePolicyId}");
+            }
+
+            // 3. Créer la politique de verrouillage
+            $this->info('📝 Création de locked_policy...');
+            $lockedPolicyId = $this->createLockedPolicy($accessToken, $enterpriseId);
+
+            if ($lockedPolicyId) {
+                $this->info("✅ locked_policy créée : {$lockedPolicyId}");
+            }
 
             $this->newLine();
             $this->info('✅ Politiques créées avec succès !');
             $this->newLine();
             $this->line('📝 Ajoutez ces lignes dans votre fichier .env :');
             $this->newLine();
-            //  $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
-            // $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
+            $this->line("AMAPI_POLICY_DEFAULT={$defaultPolicyId}");
+            $this->line("AMAPI_POLICYCOPE={$copePolicyId}");
+            $this->line("AMAPI_POLICY_LOCKED={$lockedPolicyId}");
             $this->newLine();
 
             return Command::SUCCESS;
@@ -87,6 +96,33 @@ class CreateAMAPIPolicies extends Command
                 'error_detail' => $response->json() ?? $response->body(),
             ]);
             $this->error('Échec création default_policy : '.$response->body());
+
+            return null;
+        }
+
+        return $policyId;
+    }
+
+    private function createCopePolicy(string $accessToken, string $enterpriseId): ?string
+    {
+        $policyId = 'cope_policy';
+        $enterpriseId = ltrim($enterpriseId, '/');
+        $name = "enterprises/{$enterpriseId}/policies/{$policyId}";
+        $url = "https://androidmanagement.googleapis.com/v1/{$name}";
+
+        $policy = $this->getCopePolicyConfig();
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$accessToken}",
+            'Content-Type' => 'application/json',
+        ])->patch($url, $policy);
+
+        if ($response->failed()) {
+            Log::error('AMAPI Policy Error', [
+                'constructed_url' => $url,
+                'error_detail' => $response->json() ?? $response->body(),
+            ]);
+            $this->error('Échec création cope_policy : '.$response->body());
 
             return null;
         }
@@ -231,7 +267,7 @@ class CreateAMAPIPolicies extends Command
             'factoryResetDisabled' => true,
             'installUnknownSourcesAllowed' => false, // empecher l'installation d'applications depuis des sources inconnues
             'safeBootDisabled' => true, // empecher le démarrage en mode sans échec
-            'debuggingFeaturesAllowed' => true, // empecher le débogage
+            'debuggingFeaturesAllowed' => false, // empecher le débogage
             // 'addUserDisabled' => true,
             // 'removeUserDisabled' => true,
             // 'modifyAccountsDisabled' => true, // empecher la modification des comptes
@@ -247,6 +283,49 @@ class CreateAMAPIPolicies extends Command
 
             'systemUpdate' => [
                 'type' => 'AUTOMATIC', // mise à jour automatique du système
+            ],
+        ];
+    }
+
+    private function getCopePolicyConfig(): array
+    {
+        return [
+            'applications' => [
+                [
+                    'packageName' => 'com.trueline.mdm',
+                    'installType' => 'FORCE_INSTALLED',
+                    'defaultPermissionPolicy' => 'GRANT',
+                ],
+            ],
+
+            // === Work Profile ===
+            'workProfilePolicy' => [
+                'workProfileWidgetsEnabled' => false,
+                'crossProfileCallerIdDisabled' => true,
+                'crossProfileContactsSearchDisabled' => true,
+                'showWorkContactsInPersonalContacts' => false,
+            ],
+
+            'ensureVerificationAgent' => true,
+
+            'playStoreMode' => 'BLACKLIST',
+
+            'factoryResetDisabled' => true,
+            'installUnknownSourcesAllowed' => false,
+            'safeBootDisabled' => true,
+            'debuggingFeaturesAllowed' => false,
+            'uninstallAppsDisabled' => true,
+
+            'frpAdminEmails' => [
+                'etstrueline@gmail.com',
+            ],
+
+            'appAutoUpdatePolicy' => 'ALWAYS',
+
+            'locationMode' => 'HIGH_ACCURACY',
+
+            'systemUpdate' => [
+                'type' => 'AUTOMATIC',
             ],
         ];
     }
@@ -364,6 +443,9 @@ class CreateAMAPIPolicies extends Command
             'vpnConfigDisabled' => true,               // Bloque les VPN utilisateur
             'wifiConfigDisabled' => false,              // Seul l'EMM configure le WiFi
             'bluetoothConfigDisabled' => false,         // Seul l'EMM configure le Bluetooth
+
+            // === Work profile (COPE uniquement, neutre sur FM) ===
+            'usagesDisabled' => true,                   // Bloque l'usage du work profile sur COPE
 
             // === Contrôle du clavier et saisie ===
             'setWallpaperDisabled' => true,

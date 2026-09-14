@@ -37,7 +37,7 @@ class AMAPIClientService
             // Créer un enrollment token dans AMAPI
             $response = Http::withHeaders($this->getAuthHeaders())
                 ->post("{$this->baseUrl}/enterprises/{$this->enterpriseId}/enrollmentTokens", [
-                    'policyName' => "enterprises/{$this->enterpriseId}/policies/default_policy",
+                    'policyName' => "enterprises/{$this->enterpriseId}/policies/cope_policy",
                     'duration' => '2592000s', // 30 jours
                     'additionalData' => json_encode(array_merge([
                         'device_id' => $device->id,
@@ -66,7 +66,7 @@ class AMAPIClientService
                     'amapi_enterprise_id' => $this->enterpriseId,
                     'enrollment_token' => $enrollmentToken,
                     'qr_code_data' => $qrCode,
-                    'amapi_policy_id' => 'default_policy',
+                    'amapi_policy_id' => 'cope_policy',
                     'amapi_state' => 'PROVISIONING',
                 ]
             );
@@ -301,7 +301,7 @@ class AMAPIClientService
                 ->patch(
                     "{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices/{$amapiDevice->amapi_device_id}",
                     [
-                        'policyName' => "enterprises/{$this->enterpriseId}/policies/default_policy",
+                        'policyName' => "enterprises/{$this->enterpriseId}/policies/cope_policy",
                         'state' => 'ACTIVE',
                     ]
                 );
@@ -410,6 +410,90 @@ class AMAPIClientService
         ]);
 
         return false;
+    }
+
+    /**
+     * Relinquish ownership d'un appareil (Device Owner → non géré)
+     * Utilise le mode RELINQUISH_OWNERSHIP pour les devices FM/COPE
+     */
+    public function relinquishOwnership(Device $device, string $reason, ?int $userId = null): bool
+    {
+        $amapiDevice = $device->amapiDevice;
+
+        if (! $amapiDevice || ! $amapiDevice->amapi_device_id) {
+            throw new Exception('Device not enrolled in AMAPI');
+        }
+
+        $lockHistory = DeviceLockHistory::create([
+            'device_id' => $device->id,
+            'financing_plan_id' => $device->financingPlan?->id,
+            'action' => 'RELINQUISH_OWNERSHIP_ATTEMPT',
+            'trigger_reason' => $reason,
+            'status' => 'PENDING',
+            'triggered_by_user_id' => $userId,
+        ]);
+
+        try {
+            $response = Http::withHeaders($this->getAuthHeaders())
+                ->patch(
+                    "{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices/{$amapiDevice->amapi_device_id}",
+                    [
+                        'commands' => [
+                            [
+                                'type' => 'RELINQUISH_OWNERSHIP',
+                            ],
+                        ],
+                    ]
+                );
+
+            if ($response->successful()) {
+                $amapiDevice->update([
+                    'amapi_state' => 'LIBERATED',
+                    'last_command_sent_at' => now(),
+                    'last_command_type' => 'RELINQUISH_OWNERSHIP',
+                    'last_command_status' => 'SUCCESS',
+                ]);
+
+                $lockHistory->update([
+                    'action' => 'RELINQUISH_OWNERSHIP',
+                    'status' => 'SUCCESS',
+                    'executed_at' => now(),
+                    'amapi_command_id' => $response->json('name'),
+                ]);
+
+                Log::info('Device relinquished successfully via AMAPI', [
+                    'device_id' => $device->id,
+                    'reason' => $reason,
+                ]);
+
+                return true;
+            }
+
+            Log::error('AMAPI relinquishOwnership failed', [
+                'device_id' => $device->id,
+                'device_amapi_id' => $amapiDevice->amapi_device_id,
+                'response' => $response->body(),
+            ]);
+
+            throw new Exception($response->body());
+        } catch (Exception $e) {
+            $lockHistory->update([
+                'status' => 'FAILED',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            $amapiDevice->update([
+                'last_command_status' => 'FAILED',
+                'last_command_error' => $e->getMessage(),
+            ]);
+
+            Log::error('AMAPI relinquishOwnership failed', [
+                'device_id' => $device->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

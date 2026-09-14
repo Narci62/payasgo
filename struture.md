@@ -19,3 +19,5 @@ Une fois l'étape 1 validée, analyse le projet et liste-moi précisément :
 2. Effectue des tests unitaires, d'integration, de sécurité pour validation tes mise à jours
 
 RÈGLE D'OR INTERDITE : Ne jamais improviser, deviner ou ajouter une fonctionnalité non demandée. En cas de doute ou de choix technique à faire, tu dois obligatoirement me poser la question et obtenir ma validation.
+
+Pour finir, chaque ajout de table de migrations ou toute modifications pouvant entrainer des opération sur la base de données doivent bien decrite et avoir obtenir mon accord au préalable.

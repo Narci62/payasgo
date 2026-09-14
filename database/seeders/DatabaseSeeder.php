@@ -13,10 +13,10 @@ class DatabaseSeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
 
         $user = User::factory()->create([
-            'imat' => '1233330290',
-            'name' => 'Super Admin',
-            'email' => 'admin@gmail.com',
-            'password' => Hash::make('password'),
+            'imat' => '123330290',
+            'name' => 's admin',
+            'email' => 'admin@trueline-system.com',
+            'password' => Hash::make('admin.trueline123'),
         ]);
 
         $user->assignRole('super-admin');

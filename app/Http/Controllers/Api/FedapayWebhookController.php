@@ -175,7 +175,7 @@ class FedapayWebhookController extends Controller
 
             $real_amount = (int) ($payment->amount - $details['penalite']);
 
-            $this->financingPlanService->savePayment($record, $real_amount, 'fedapay', $payment->transaction_id);
+            $this->financingPlanService->savePayment($record, $real_amount, 'fedapay', $payment->transaction_id, $details['penalite']);
 
             Log::info("✅ Paiement confirmé pour $payment->transaction_id");
         } else {

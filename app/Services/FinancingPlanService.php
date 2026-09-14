@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Models\AmapiSyncLog;
 use App\Models\Device;
 use App\Models\Financing_plan;
+use App\Models\Penalty;
 use App\Models\User;
 use App\Notifications\AmapiSyncFailedNotification;
 use Carbon\Carbon;
@@ -183,7 +184,7 @@ class FinancingPlanService
         ];
     }
 
-    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method, $transactionId): Financing_plan
+    public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method, $transactionId, float $penaltyAmount = 0): Financing_plan
     {
         $is_full_payment = false; // paiement complète
         $newbalance = $financingPlan->remaining_balance - $amountPaid;
@@ -220,7 +221,7 @@ class FinancingPlanService
         $financingPlan->save();
 
         // save payment histories
-        (new PaymentService)->store([
+        $paymentResult = (new PaymentService)->store([
             'financing_plan_id' => $financingPlan->id,
             'amount' => $amountPaid,
             'method' => $method,
@@ -228,6 +229,21 @@ class FinancingPlanService
             'status' => 'completed',
             'paid_at' => now(),
         ]);
+
+        // Enregistrer la pénalité si elle existe et n'est pas déjà enregistrée
+        if ($penaltyAmount > 0) {
+            $payment = $paymentResult['payment'];
+            $existingPenalty = Penalty::where('payment_id', $payment->id)->exists();
+
+            if (! $existingPenalty) {
+                Penalty::create([
+                    'financing_plan_id' => $financingPlan->id,
+                    'payment_id' => $payment->id,
+                    'amount' => $penaltyAmount,
+                    'reason' => 'Pénalité de retard',
+                ]);
+            }
+        }
 
         $device = $financingPlan->device;
 

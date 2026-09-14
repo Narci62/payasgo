@@ -33,6 +33,11 @@ class Financing_plan extends Model
         return $this->hasMany(AmapiSyncLog::class);
     }
 
+    public function penalties(): HasMany
+    {
+        return $this->hasMany(Penalty::class);
+    }
+
     // get "soldé" for paid_in_full status attribute
     public function getStatusAttribute($value)
     {

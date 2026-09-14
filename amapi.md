@@ -69,7 +69,10 @@ PayasGo est un dispositif de financement de téléphones (buy-now-pay-later). L'
    → Work profile supprimé
    → Données personnelles conservées
    → Téléphone devient 100% personnel
-```
+
+   ** Sans oublié d'ajouter etstrueline@gmail.com comme mail à renseigner apres une reinitialisation de 
+   contournement de notre systeme sans que cela ne soit decider par notre systeme
+   ```
 
 ### Fichiers concernés
 

@@ -60,6 +60,7 @@ return [
         // Politiques prédéfinies
         'policies' => [
             'default' => env('AMAPI_POLICY_DEFAULT', 'default_policy'),
+            'cope' => env('AMAPI_POLICYCOPE', 'cope_policy'),
             'locked' => env('AMAPI_POLICY_LOCKED', 'locked_policy'),
         ],
 
