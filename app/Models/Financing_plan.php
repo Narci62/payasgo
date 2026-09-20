@@ -38,6 +38,11 @@ class Financing_plan extends Model
         return $this->hasMany(Penalty::class);
     }
 
+    public function installments(): HasMany
+    {
+        return $this->hasMany(Installment::class);
+    }
+
     // get "soldé" for paid_in_full status attribute
     public function getStatusAttribute($value)
     {

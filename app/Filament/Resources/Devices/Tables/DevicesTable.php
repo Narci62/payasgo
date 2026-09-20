@@ -44,7 +44,14 @@ class DevicesTable
                     ->searchable(),
                 TextColumn::make('status')
                     ->badge()
-                    ->label('Statut'),
+                    ->label('Statut')
+                    ->color(fn (string $state): string => match ($state) {
+                        'locked' => 'danger',
+                        'disabled' => 'danger',
+                        'payment_due' => 'warning',
+                        'active' => 'success',
+                        default => 'gray',
+                    }),
                 TextColumn::make('last_seen_at')
                     ->dateTime()
                     ->sortable()

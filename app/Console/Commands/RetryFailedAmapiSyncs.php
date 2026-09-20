@@ -84,7 +84,7 @@ class RetryFailedAmapiSyncs extends Command
                 ]);
 
                 if ($log->attempts >= $maxAttempts) {
-                    $admins = \App\Models\User::where('is_admin', true)->get();
+                    $admins = \App\Models\User::role(['admin', 'super-admin'])->get();
                     Notification::send($admins, new AmapiSyncFailedNotification(
                         $log->financingPlan,
                         $log->device,

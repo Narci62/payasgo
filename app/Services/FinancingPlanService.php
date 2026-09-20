@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Models\AmapiSyncLog;
 use App\Models\Device;
 use App\Models\Financing_plan;
+use App\Models\Installment;
 use App\Models\Penalty;
 use App\Models\User;
 use App\Notifications\AmapiSyncFailedNotification;
@@ -22,7 +23,7 @@ class FinancingPlanService
         $remaining_balance = $data['total_price'] - $data['down_payment'];
         $next_offline_unlock_code = $this->nextOfflineUnlockCode();
 
-        return Financing_plan::create([
+        $plan = Financing_plan::create([
             'device_id' => $data['device_id'] ?? null,
             'registration_token_id' => $data['registration_token_id'],
             'total_price' => $data['total_price'],
@@ -34,6 +35,17 @@ class FinancingPlanService
             'grace_period_ends_at' => $grace_period_ends_at,
             'next_offline_unlock_code' => $next_offline_unlock_code,
         ]);
+
+        // Créer la première échéance
+        Installment::create([
+            'financing_plan_id' => $plan->id,
+            'due_date' => $date_payment_due,
+            'amount' => $data['installment_amount'],
+            'remaining_amount' => $data['installment_amount'],
+            'status' => 'pending',
+        ]);
+
+        return $plan;
     }
 
     public function showFinancingPlan($id): ?Financing_plan
@@ -122,100 +134,148 @@ class FinancingPlanService
 
     public function checkEligibilityAndReturnNewAmount(Financing_plan $financing_plan, $amount)
     {
-        $penalite = 0;
-        $nbr_intervall = 0;
+        $penaltyService = new PenaltyService;
+
         $payout = $financing_plan->installment_amount;
 
-        // Vérification du montant minimum
         if ($payout > $amount) {
             return ['message' => 'Montant insuffisant', 'status' => false];
         }
 
         $now = Carbon::now();
         $next_payment_due = Carbon::parse($financing_plan->next_payment_due_date);
-        $intervall_days = $financing_plan->days_interval;
 
-        // Si on est en retard
+        // Si on est en retard, calculer les pénalités via le nouveau système
         if ($now->greaterThan($next_payment_due)) {
-            // Nombre de jours de retard
-            $diff_days = abs($now->diffInDays($next_payment_due));
+            // Trouver l'échéance courante
+            $currentInstallment = $financing_plan->installments()
+                ->where('status', '!=', 'paid')
+                ->orderBy('due_date', 'asc')
+                ->first();
 
-            // Nombre d'échéances manquées (périodes complètes)
-            $nbr_echeances_manquees = (int) ($diff_days / $intervall_days);
-            if ($nbr_echeances_manquees < 1) {
-                $nbr_echeances_manquees = 1;
-            }
+            if ($currentInstallment) {
+                $penalty = $penaltyService->calculatePenalty($currentInstallment);
+                $totalDue = $payout + $penalty;
 
-            // Si au moins 1 échéance manquée, il y a pénalité
-            if ($nbr_echeances_manquees >= 1) {
-                $total_normal = $payout * $nbr_echeances_manquees;
-                $penalite = ($payout * 0.5) * $nbr_echeances_manquees;
-                $total_all = $total_normal + $penalite;
-
-                if ($amount < $total_all) {
+                if ($amount < $totalDue) {
                     return [
-                        'message' => "Le montant doit être au moins de $total_all FCFA pour couvrir les pénalités de retard.",
+                        'message' => "Le montant doit être au moins de {$totalDue} FCFA pour couvrir l'échéance et les pénalités de retard.",
                         'status' => false,
                     ];
                 }
 
-                // Le montant couvre les pénalités, calculer combien d'échéances il peut payer
-                // On soustrait d'abord les pénalités
-                $montant_restant = $amount - $penalite;
+                // Le montant couvre, calculer combien d'échéances il peut payer
+                $montant_restant = $amount - $penalty;
                 $nbr_intervall = (int) ($montant_restant / $payout);
                 $total_normal = $payout * $nbr_intervall;
-            } else {
-                // En retard mais moins d'une période complète
-                // Pas de pénalité encore, on calcule normalement
-                $nbr_intervall = (int) ($amount / $payout);
-                $total_normal = $payout * $nbr_intervall;
+
+                return [
+                    'nbr_interval' => $nbr_intervall,
+                    'status' => true,
+                    'total_normal' => $total_normal,
+                    'penalite' => $penalty,
+                ];
             }
-        } else {
-            // Paiement à temps ou en avance
-            $nbr_intervall = (int) ($amount / $payout);
-            $total_normal = $payout * $nbr_intervall;
         }
+
+        // Paiement à temps ou échéance non trouvée
+        $nbr_intervall = (int) ($amount / $payout);
+        $total_normal = $payout * $nbr_intervall;
 
         return [
             'nbr_interval' => $nbr_intervall,
             'status' => true,
             'total_normal' => $total_normal,
-            'penalite' => $penalite,
+            'penalite' => 0,
         ];
     }
 
     public function savePayment(Financing_plan $financingPlan, $amountPaid, string $method, $transactionId, float $penaltyAmount = 0): Financing_plan
     {
-        $is_full_payment = false; // paiement complète
-        $newbalance = $financingPlan->remaining_balance - $amountPaid;
-        if ($newbalance < 0) {
-            $newbalance = 0;
-        }
-        $financingPlan->remaining_balance = $newbalance;
+        $penaltyService = new PenaltyService;
 
-        // next payment date
-        $nbr_deviseur = (int) ($amountPaid / $financingPlan->installment_amount);
-        if ($nbr_deviseur >= 1) {
-            // calculate next payment due date
-            $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval * $nbr_deviseur);
-        }
+        // Trouver l'échéance courante
+        $currentInstallment = $financingPlan->installments()
+            ->where('status', '!=', 'paid')
+            ->orderBy('due_date', 'asc')
+            ->first();
 
-        // $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(Carbon::parse($financingPlan->next_payment_due_date), $financingPlan->days_interval);
+        if ($currentInstallment) {
+            // Appliquer l'ordre d'imputation : pénalités d'abord, puis principal
+            $allocation = $penaltyService->allocatePayment($currentInstallment, $amountPaid);
+
+            // Mettre à jour le solde du plan
+            $financingPlan->remaining_balance = max(0, $financingPlan->remaining_balance - $allocation['principal_paid']);
+
+            // Marquer l'échéance comme payée si le principal est soldé
+            if ($allocation['remaining_amount'] == 0) {
+                $currentInstallment->update([
+                    'remaining_amount' => 0,
+                    'status' => 'paid',
+                ]);
+
+                // Avancer la date du prochain paiement
+                $financingPlan->next_payment_due_date = $this->calculateNextPaymentDueDate(
+                    Carbon::parse($currentInstallment->due_date),
+                    $financingPlan->days_interval
+                );
+
+                // Créer la prochaine échéance si le plan n'est pas soldé
+                if ($financingPlan->remaining_balance > 0) {
+                    $nextDueDate = $this->calculateNextPaymentDueDate(
+                        Carbon::parse($currentInstallment->due_date),
+                        $financingPlan->days_interval
+                    );
+                    $nextAmount = min($financingPlan->installment_amount, $financingPlan->remaining_balance);
+
+                    Installment::create([
+                        'financing_plan_id' => $financingPlan->id,
+                        'due_date' => $nextDueDate,
+                        'amount' => $nextAmount,
+                        'remaining_amount' => $nextAmount,
+                        'status' => 'pending',
+                    ]);
+                }
+            } else {
+                // Paiement partiel sur le principal
+                $currentInstallment->update([
+                    'remaining_amount' => $allocation['remaining_amount'],
+                ]);
+            }
+
+            // Enregistrer les pénalités payées
+            if ($allocation['penalties_paid'] > 0) {
+                $paymentResult = (new PaymentService)->store([
+                    'financing_plan_id' => $financingPlan->id,
+                    'amount' => $allocation['penalties_paid'],
+                    'method' => $method,
+                    'transaction_id' => $transactionId,
+                    'status' => 'completed',
+                    'paid_at' => now(),
+                ]);
+
+                // Les pénalités sont déjà enregistrées par le système de paliers
+            }
+        } else {
+            // Pas d'échéance trouvée, comportement par défaut
+            $newbalance = $financingPlan->remaining_balance - $amountPaid;
+            if ($newbalance < 0) {
+                $newbalance = 0;
+            }
+            $financingPlan->remaining_balance = $newbalance;
+        }
 
         // next offline unlock code
         $financingPlan->next_offline_unlock_code = $this->nextOfflineUnlockCode();
 
         // check if financing plan is paid in full
-        if ($newbalance == 0) {
+        if ($financingPlan->remaining_balance == 0) {
             $financingPlan->status = 'paid_in_full';
-            // save uninstall code
             do {
                 $financingPlan->uninstall_code = Helper::generateRandomString();
             } while (Financing_plan::where('uninstall_code', $financingPlan->uninstall_code)->exists());
-        }
-
-        if ($newbalance != 0 && $financingPlan->installment_amount > $newbalance) {
-            $financingPlan->installment_amount = $newbalance;
+        } else {
+            $financingPlan->status = 'active';
         }
 
         $financingPlan->save();
@@ -225,12 +285,12 @@ class FinancingPlanService
             'financing_plan_id' => $financingPlan->id,
             'amount' => $amountPaid,
             'method' => $method,
-            'transaction_id' => $transactionId, // ID de la transaction Fedapay
+            'transaction_id' => $transactionId,
             'status' => 'completed',
             'paid_at' => now(),
         ]);
 
-        // Enregistrer la pénalité si elle existe et n'est pas déjà enregistrée
+        // Enregistrer la pénalité passée en paramètre (compatibilité avec l'ancien flux)
         if ($penaltyAmount > 0) {
             $payment = $paymentResult['payment'];
             $existingPenalty = Penalty::where('payment_id', $payment->id)->exists();
@@ -240,6 +300,7 @@ class FinancingPlanService
                     'financing_plan_id' => $financingPlan->id,
                     'payment_id' => $payment->id,
                     'amount' => $penaltyAmount,
+                    'type' => null,
                     'reason' => 'Pénalité de retard',
                 ]);
             }
@@ -312,7 +373,7 @@ class FinancingPlanService
 
     private function notifyAdminsOfSyncFailure(Financing_plan $plan, Device $device, string $action, string $error): void
     {
-        $admins = User::where('is_admin', true)->get();
+        $admins = User::role(['admin', 'super-admin'])->get();
 
         if ($admins->isEmpty()) {
             return;

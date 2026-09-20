@@ -49,6 +49,7 @@ class DeviceMonitoringService
                     'device_status' => $device->status,
                     'amapi_state' => $device->amapiDevice?->amapi_state,
                     'next_payment_due_date' => $device->financingPlan?->next_payment_due_date,
+                    'current_installment_due' => $device->financingPlan?->installments()?->where('status', '!=', 'paid')?->first()?->due_date,
                     'last_seen_at' => $device->last_seen_at,
                 ]);
 
@@ -137,15 +138,17 @@ class DeviceMonitoringService
             return false;
         }
 
-        // Si pas de date de prochain paiement, pas de retard
-        if (! $plan->next_payment_due_date) {
+        // Vérifier l'échéance courante via la table installments
+        $currentInstallment = $plan->installments()
+            ->where('status', '!=', 'paid')
+            ->orderBy('due_date', 'asc')
+            ->first();
+
+        if (! $currentInstallment) {
             return false;
         }
 
-        // Comparer avec la date actuelle
-        $dueDate = Carbon::parse($plan->next_payment_due_date);
-
-        return now()->greaterThan($dueDate);
+        return now()->greaterThan($currentInstallment->due_date);
     }
 
     /**

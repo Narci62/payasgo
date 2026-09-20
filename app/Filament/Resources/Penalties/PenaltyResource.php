@@ -48,9 +48,30 @@ class PenaltyResource extends Resource
                     ->label('Référence')
                     ->searchable(),
 
+                TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'fixed_5000' => 'warning',
+                        'fixed_10000' => 'danger',
+                        'variable_5pct' => 'info',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'fixed_5000' => 'Fixe 5 000 FCFA',
+                        'fixed_10000' => 'Fixe 10 000 FCFA',
+                        'variable_5pct' => 'Variable 5%',
+                        default => 'N/A',
+                    }),
+
                 TextColumn::make('amount')
                     ->label('Montant')
                     ->money('XOF')
+                    ->sortable(),
+
+                TextColumn::make('installment.due_date')
+                    ->label('Échéance')
+                    ->date('d/m/Y')
                     ->sortable(),
 
                 TextColumn::make('reason')

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\FinancingPlans\Pages;
 
 use App\Filament\Resources\FinancingPlans\FinancingPlanResource;
+use App\Models\Installment;
 use App\Models\Phone;
 use App\Services\AMAPIClientService;
 use App\Services\DeviceService;
@@ -83,6 +84,15 @@ class CreateFinancingPlan extends CreateRecord
         // update financing plan with device id
         $financing_plan->update([
             'device_id' => Cache::pull('created_device_id'),
+        ]);
+
+        // Créer la première échéance
+        Installment::create([
+            'financing_plan_id' => $financing_plan->id,
+            'due_date' => $financing_plan->next_payment_due_date,
+            'amount' => $financing_plan->installment_amount,
+            'remaining_amount' => $financing_plan->installment_amount,
+            'status' => 'pending',
         ]);
 
         // create enrollment token for google amapi enrollment

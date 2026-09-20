@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Financing_plan;
 use App\Services\FinancingPlanService;
+use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 
 class AdminPaymentController extends Controller
@@ -13,21 +14,30 @@ class AdminPaymentController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Valider la requête de l'admin
         $validated = $request->validate([
             'financing_plan_id' => ['required', 'exists:financing_plans,id'],
             'amount' => ['required', 'integer', 'min:1'],
-            'transaction_id' => ['nullable', 'string'], // Référence manuelle optionnelle
+            'transaction_id' => ['nullable', 'string'],
         ]);
 
-        // 2. Trouver le plan
         $plan = Financing_plan::findOrFail($validated['financing_plan_id']);
 
-        // 3. Appeler LE MÊME service de paiement !
+        // Calculer les pénalités si l'échéance est en retard
+        $penaltyService = new PenaltyService;
+        $currentInstallment = $plan->installments()
+            ->where('status', '!=', 'paid')
+            ->orderBy('due_date', 'asc')
+            ->first();
+
+        if ($currentInstallment && $currentInstallment->isOverdue()) {
+            $penalty = $penaltyService->calculatePenalty($currentInstallment);
+            $penaltyService->storePenalties($currentInstallment, $penalty);
+        }
+
         $success = $this->paymentService->savePayment(
             $plan,
             $validated['amount'],
-            'manual', // La méthode est 'manual'
+            'manual',
             $validated['transaction_id'] ?? null
         );
 
@@ -37,7 +47,7 @@ class AdminPaymentController extends Controller
 
         return response()->json([
             'message' => 'Paiement manuel enregistré avec succès.',
-            'plan' => $plan->fresh(), // Renvoyer le plan mis à jour
+            'plan' => $plan->fresh(),
         ], 200);
     }
 }

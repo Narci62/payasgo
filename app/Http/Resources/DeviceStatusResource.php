@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\PenaltyService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,15 +23,11 @@ class DeviceStatusResource extends JsonResource
             return $this->formatActiveResponse($financingPlan);
         }
 
-        // Vérifier si la date du prochain paiement est dépassée
-        if (now()->greaterThan($financingPlan->next_payment_due_date)) {
-            return $this->formatPaymentDueResponse($financingPlan);
+        // Vérifier si l'échéance courante est en retard via la table installments
+        $penaltyService = new PenaltyService;
+        if ($penaltyService->isCurrentInstallmentOverdue($financingPlan)) {
+            return $this->formatPaymentDueResponse($financingPlan, $penaltyService);
         }
-
-        // Vérifier si la date du période de grâce est dépassée
-        // if (now()->greaterThan($financingPlan->grace_period_ends_at)) {
-        //     return $this->formatPaymentDueGracePeriodResponse($financingPlan);
-        // }
 
         // Si aucune des conditions ci-dessus n'est remplie, l'appareil est actif.
         return $this->formatActiveResponse($financingPlan);
@@ -59,7 +56,7 @@ class DeviceStatusResource extends JsonResource
 
             ],
             'config' => [
-                'check_interval_minutes' => 120, // Intervalle plus long
+                'check_interval_minutes' => 120,
             ],
             'next_offline_unlock_code' => $financingPlan?->next_offline_unlock_code,
         ];
@@ -68,15 +65,29 @@ class DeviceStatusResource extends JsonResource
     /**
      * Formate la réponse pour un appareil en retard de paiement.
      */
-    protected function formatPaymentDueResponse($financingPlan): array
+    protected function formatPaymentDueResponse($financingPlan, PenaltyService $penaltyService): array
     {
+        // Trouver l'échéance courante pour calculer le total dû
+        $currentInstallment = $financingPlan->installments()
+            ->where('status', '!=', 'paid')
+            ->orderBy('due_date', 'asc')
+            ->first();
+
+        $totalDue = $currentInstallment
+            ? $penaltyService->getTotalDue($currentInstallment)
+            : $financingPlan->installment_amount;
+
+        $daysLate = $currentInstallment ? $currentInstallment->getDaysLate() : 0;
+
         return [
             'status' => 'bloqué',
             'lock_required' => true,
             'lock_screen_info' => [
                 'title' => 'Téléphone suspendu',
                 'message' => 'Votre versement est en retard. Téléphone suspendu',
-                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ').' FCFA',
+                'days_late' => $daysLate,
+                'amount_due' => number_format($totalDue, 0, ',', ' ').' FCFA',
+                'installment_amount' => number_format($financingPlan->installment_amount, 0, ',', ' ').' FCFA',
                 'payment_instructions' => '*880*41*38761*'.(int) $this->financingPlan?->installment_amount.'*'.$this->client?->reference.'#',
                 'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
                 'support_phone_number' => '+229 01 76 65 65',
@@ -85,32 +96,7 @@ class DeviceStatusResource extends JsonResource
 
             ],
             'config' => [
-                'check_interval_minutes' => 15, // Intervalle plus court pour débloquer rapidement
-            ],
-        ];
-    }
-
-    /**
-     * Formate la réponse pour un appareil en retard de paiement.
-     */
-    protected function formatPaymentDueGracePeriodResponse($financingPlan): array
-    {
-        return [
-            'status' => 'payment_due_grace_period',
-            'lock_required' => true,
-            'lock_screen_info' => [
-                'title' => 'Téléphone suspendu',
-                'message' => 'Votre versement est en retard et vous avez dépassé la période de grâce. Veuillez régler votre facture pour débloquer votre appareil.',
-                'amount_due' => number_format($financingPlan->installment_amount, 0, ',', ' ').' FCFA',
-                'payment_instructions' => '*880*41*38761*'.(int) $this->financingPlan?->installment_amount.'*'.$this->client?->reference.'#',
-                'payment_link' => env('PAYMENT_LINK', 'https://example.com/payment'),
-                'support_phone_number' => '+229 01 76 65 65',
-                'identifiant_client' => 'Référence client : '.$this->client?->reference,
-                'uninstall_code' => $this->financingPlan?->uninstall_code,
-
-            ],
-            'config' => [
-                'check_interval_minutes' => 15, // Intervalle plus court pour débloquer rapidement
+                'check_interval_minutes' => 15,
             ],
         ];
     }

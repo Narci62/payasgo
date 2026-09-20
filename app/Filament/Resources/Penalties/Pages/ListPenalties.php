@@ -36,4 +36,19 @@ class ListPenalties extends ListRecords
     {
         return (float) Penalty::whereDate('created_at', today())->sum('amount');
     }
+
+    public function getFixed5000Total(): float
+    {
+        return (float) Penalty::where('type', 'fixed_5000')->sum('amount');
+    }
+
+    public function getFixed10000Total(): float
+    {
+        return (float) Penalty::where('type', 'fixed_10000')->sum('amount');
+    }
+
+    public function getVariable5pctTotal(): float
+    {
+        return (float) Penalty::where('type', 'variable_5pct')->sum('amount');
+    }
 }

@@ -14,6 +14,11 @@ class Penalty extends Model
         return $this->belongsTo(Financing_plan::class);
     }
 
+    public function installment(): BelongsTo
+    {
+        return $this->belongsTo(Installment::class);
+    }
+
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
