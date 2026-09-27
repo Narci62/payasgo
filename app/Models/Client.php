@@ -4,11 +4,17 @@ namespace App\Models;
 
 use App\Services\ClientService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
     protected $guarded = [];
+
+    public function garant(): BelongsTo
+    {
+        return $this->belongsTo(Garant::class);
+    }
 
     public function devices(): HasMany
     {

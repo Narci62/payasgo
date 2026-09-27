@@ -70,7 +70,7 @@ class CreateAMAPIPolicies extends Command
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('❌ Erreur : '.$e->getMessage());
+            $this->error('❌ Erreur : ' . $e->getMessage());
 
             return Command::FAILURE;
         }
@@ -95,7 +95,7 @@ class CreateAMAPIPolicies extends Command
                 'constructed_url' => $url,
                 'error_detail' => $response->json() ?? $response->body(),
             ]);
-            $this->error('Échec création default_policy : '.$response->body());
+            $this->error('Échec création default_policy : ' . $response->body());
 
             return null;
         }
@@ -122,7 +122,7 @@ class CreateAMAPIPolicies extends Command
                 'constructed_url' => $url,
                 'error_detail' => $response->json() ?? $response->body(),
             ]);
-            $this->error('Échec création cope_policy : '.$response->body());
+            $this->error('Échec création cope_policy : ' . $response->body());
 
             return null;
         }
@@ -145,7 +145,7 @@ class CreateAMAPIPolicies extends Command
         ])->patch($url, $policy);
 
         if ($response->failed()) {
-            $this->error('Échec création locked_policy : '.$response->body());
+            $this->error('Échec création locked_policy : ' . $response->body());
 
             return null;
         }
@@ -298,18 +298,40 @@ class CreateAMAPIPolicies extends Command
                 ],
             ],
 
-            // === Work Profile ===
-            'workProfilePolicy' => [
-                'workProfileWidgetsEnabled' => false,
-                'crossProfileCallerIdDisabled' => true,
-                'crossProfileContactsSearchDisabled' => true,
-                'showWorkContactsInPersonalContacts' => false,
+            // === Cross-profile policies (champs stricts de l'API) ===
+            'crossProfilePolicies' => [
+                // Champs valides dans crossProfilePolicies :
+                // - crossProfileAppFunctions (string enum)
+                // - crossProfileCopyPaste (string enum)
+                // - crossProfileDataSharing (string enum)
+                // - exemptionsToShowWorkContactsInPersonalProfile (objet)
+                // - showWorkContactsInPersonalProfile (string enum)
+                // - workProfileWidgetsDefault (string enum)
+
+                // ❌ crossProfileCallerIdDisabled → N'EXISTE PAS dans l'API REST
+                // ❌ crossProfileContactsSearchDisabled → N'EXISTE PAS dans l'API REST
+
+                'showWorkContactsInPersonalProfile' => 'SHOW_WORK_CONTACTS_IN_PERSONAL_PROFILE_DISALLOWED',
+                'workProfileWidgetsDefault' => 'WORK_PROFILE_WIDGETS_DEFAULT_DISALLOWED',
+
+                // Optionnel : bloquer copier/coller et partage de données entre profils
+                // 'crossProfileCopyPaste' => 'CROSS_PROFILE_COPY_PASTE_DISALLOWED',
+                // 'crossProfileDataSharing' => 'CROSS_PROFILE_DATA_SHARING_DISALLOWED',
             ],
 
-            'ensureVerificationAgent' => true,
+            // === Personal usage policies ===
+            'personalUsagePolicies' => [
+                'personalPlayStoreMode' => 'BLACKLIST',
+                'screenCaptureDisabled' => true,
+                'maxDaysWithWorkOff' => 3,
+                // ❌ cameraDisabled n'est PAS ici, c'est un champ racine
+            ],
 
+            // === Champs racine (hors personalUsagePolicies) ===
+            'cameraDisabled' => true,
+
+            'ensureVerifyAppsEnabled' => true,
             'playStoreMode' => 'BLACKLIST',
-
             'factoryResetDisabled' => true,
             'installUnknownSourcesAllowed' => false,
             'safeBootDisabled' => true,
@@ -321,7 +343,6 @@ class CreateAMAPIPolicies extends Command
             ],
 
             'appAutoUpdatePolicy' => 'ALWAYS',
-
             'locationMode' => 'HIGH_ACCURACY',
 
             'systemUpdate' => [
@@ -444,9 +465,6 @@ class CreateAMAPIPolicies extends Command
             'wifiConfigDisabled' => false,              // Seul l'EMM configure le WiFi
             'bluetoothConfigDisabled' => false,         // Seul l'EMM configure le Bluetooth
 
-            // === Work profile (COPE uniquement, neutre sur FM) ===
-            'usagesDisabled' => true,                   // Bloque l'usage du work profile sur COPE
-
             // === Contrôle du clavier et saisie ===
             'setWallpaperDisabled' => true,
             'funDisabled' => true,                     // Bloque les apps de divertissement système
@@ -507,7 +525,7 @@ class CreateAMAPIPolicies extends Command
             $serviceAccountPath = config('services.amapi.service_account_json');
 
             if (! file_exists($serviceAccountPath)) {
-                dd('Le fichier est introuvable à cet endroit précis : '.$serviceAccountPath);
+                dd('Le fichier est introuvable à cet endroit précis : ' . $serviceAccountPath);
 
                 $this->error("❌ Fichier service account introuvable : {$serviceAccountPath}");
 
@@ -522,7 +540,7 @@ class CreateAMAPIPolicies extends Command
 
             return $token['access_token'] ?? null;
         } catch (\Exception $e) {
-            $this->error('Erreur lors de l\'obtention du token : '.$e->getMessage());
+            $this->error('Erreur lors de l\'obtention du token : ' . $e->getMessage());
 
             return null;
         }

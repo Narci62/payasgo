@@ -16,6 +16,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -125,6 +126,37 @@ class ClientResource extends Resource
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->required(),
                     ])->columns(3),
+
+                Section::make('Garant (Témoin)')
+                    ->description('Informations du garant du client.')
+                    ->schema([
+                        Group::make([
+                            TextInput::make('nom')
+                                ->label('Nom du garant')
+                                ->required()
+                                ->maxLength(255),
+                            TextInput::make('prenom')
+                                ->label('Prénom du garant')
+                                ->required()
+                                ->maxLength(255),
+                            TextInput::make('adresse')
+                                ->label('Adresse du garant')
+                                ->maxLength(255),
+                            TextInput::make('telephone')
+                                ->label('Téléphone du garant'),
+                            TextInput::make('numero_identite')
+                                ->label('Numéro NPI / CIP'),
+                            FileUpload::make('photo_piece')
+                                ->label('Photo de la pièce d\'identité')
+                                ->directory('documents/garants')
+                                ->preserveFilenames()
+                                ->downloadable()
+                                ->previewable()
+                                ->maxSize(2048)
+                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+                        ])->relationship('garant')
+                            ->columns(3),
+                    ]),
 
             ]);
     }
