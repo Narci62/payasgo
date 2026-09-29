@@ -2,26 +2,26 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\EditsFinancingPlan;
 use App\Filament\Resources\Clients\ClientResource;
 use App\Models\Financing_plan;
 use App\Services\FinancingPlanService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 class FinishedContractsWidget extends TableWidget
 {
+    use EditsFinancingPlan;
+
     protected static ?string $heading = 'Contrats soldés';
 
     public function table(Table $table): Table
@@ -85,62 +85,42 @@ class FinishedContractsWidget extends TableWidget
             ])
 
             ->filters([
-                // Filtre par statut (actif/inactif)
-                // SelectFilter::make('status')
-                //     ->label('Statut')
-                //     ->options([
-                //         1 => 'Actif',
-                //         0 => 'Inactif',
-                //     ])
-                //     ->query(fn (Builder $query, array $data): Builder =>
-                //         isset($data['value'])
-                //             ? $query->where('status', $data['value'])
-                //             : $query
-                //     ),
 
-                // Filtre par date d’inscription
                 Filter::make('created_at')
                     ->label('Inscrits récents (7 derniers jours)')
-                    ->query(
-                        fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDays(7))
+                    ->query(fn (Builder $query, array $data): Builder => ($data['isActive'] ?? false)
+                        ? $query->where('created_at', '>=', now()->subDays(7))
+                        : $query
                     )
                     ->toggle(),
             ])
 
             ->actions([
                 ActionGroup::make([
-                    EditAction::make()
-                        ->label('Modifier')
-                        ->icon('heroicon-o-pencil'),
+                    $this->editFinancingPlanAction('Modifier'),
 
-                    // add historique payment action
                     Action::make('view_payments')
                         ->label('Voir les paiements')
                         ->icon('heroicon-o-currency-dollar')
-                        ->action(function (Financing_plan $record): void {
-                            // Logic to view payment history
-                            $payments = $record->payments;
-                            // dd($payments);
-                        })
+                        ->modalSubmitAction(false)
                         ->modalWidth('lg')
                         ->modalHeading('Historique des paiements')
                         ->modalContent(fn (Financing_plan $record) => view('filament.resources.financing-plans.view-payments', [
                             'payments' => $record->payments,
                         ])),
 
-                    // add payment action
                     Action::make('add_payment')
                         ->label('Ajouter un paiement')
                         ->icon('heroicon-o-currency-dollar')
                         ->action(function (Financing_plan $record, array $data): void {
                             $financingPlanService = new FinancingPlanService;
-                            $payments = $financingPlanService->savePayment($record, $data['amount'], 'manual', uniqid('txn-'));
+                            $financingPlanService->savePayment($record, $data['amount'], 'manual', uniqid('txn-'));
                             Notification::make()
                                 ->title('Paiement ajouté avec succès.')
                                 ->success()
                                 ->send();
                         })
-                        ->form([
+                        ->schema([
                             TextInput::make('amount')
                                 ->label('Montant du paiement')
                                 ->numeric()
@@ -150,18 +130,14 @@ class FinishedContractsWidget extends TableWidget
                                 ->default(fn (Financing_plan $record) => $record->installment_amount)
                                 ->required(),
                         ]),
-
-                    // DeleteAction::make()
-                    //     ->label('Supprimer')
-                    //     ->icon('heroicon-o-trash'),
-
                 ]),
             ])
 
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label('Supprimer sélection'),
+                        ->label('Supprimer sélection')
+                        ->visible(fn (): bool => static::canEditFinancingPlans()),
                 ]),
             ]);
     }

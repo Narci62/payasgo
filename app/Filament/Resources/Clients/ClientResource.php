@@ -25,6 +25,8 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 
 class ClientResource extends Resource
 {
@@ -193,18 +195,9 @@ class ClientResource extends Resource
             ])
 
             ->filters([
-                // Filtre par statut (actif/inactif)
-                // SelectFilter::make('status')
-                //     ->label('Statut')
-                //     ->options([
-                //         1 => 'Actif',
-                //         0 => 'Inactif',
-                //     ])
-                //     ->query(fn (Builder $query, array $data): Builder =>
-                //         isset($data['value'])
-                //             ? $query->where('status', $data['value'])
-                //             : $query
-                //     ),
+                // Rappel : chaque callback ->query() se garde sur « isActive ».
+                // Filament l'évalue même sans état, et un whereIn sur un tableau
+                // vide génère « 0 = 1 », ce qui masquerait toute la liste.
 
                 // Filtre par date d’inscription
                 Filter::make('created_recently')
@@ -213,6 +206,78 @@ class ClientResource extends Resource
                         fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDays(7))
                     )
                     ->toggle(),
+
+                SelectFilter::make('contract_status')
+                    ->label('Statut du contrat')
+                    ->options([
+                        'active' => 'Actif',
+                        'paid_in_full' => 'Soldé',
+                        'defaulted' => 'En attente',
+                    ])
+                    ->multiple()
+                    ->query(fn (Builder $query, array $data): Builder => empty($values = (array) ($data['values'] ?? $data['value'] ?? []))
+                        ? $query
+                        : self::restrictToClientsWithPlan($query, fn ($plan) => $plan->whereIn('status', $values))),
+
+                SelectFilter::make('has_contract')
+                    ->label('Contrat')
+                    ->options([
+                        'with' => 'Avec au moins un contrat',
+                        'without' => 'Sans contrat',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'with' => self::restrictToClientsWithPlan($query),
+                        'without' => $query->whereNotIn('id', self::clientIdsWithPlan()),
+                        default => $query,
+                    }),
+                SelectFilter::make('device_status')
+                    ->label('Statut de l\'appareil')
+                    ->options([
+                        'locked' => 'Verrouillé',
+                        'payment_due' => 'Paiement dû',
+                        'active' => 'Actif',
+                    ])
+                    ->multiple()
+                    ->query(fn (Builder $query, array $data): Builder => empty($values = (array) ($data['values'] ?? $data['value'] ?? []))
+                        ? $query
+                        : $query->whereHas('devices', fn (Builder $device) => $device->whereIn('status', $values))),
+
+                SelectFilter::make('overdue')
+                    ->label('Échéance dépassée')
+                    ->options([
+                        'overdue' => 'En retard de paiement',
+                        'not_overdue' => 'À jour',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        $overdueQuery = fn ($plan) => $plan
+                            ->where('status', 'active')
+                            ->whereNotNull('next_payment_due_date')
+                            ->where('next_payment_due_date', '<', now());
+
+                        return match ($data['value']) {
+                            'overdue' => self::restrictToClientsWithPlan($query, $overdueQuery),
+                            'not_overdue' => $query->whereNotIn('id', self::clientIdsWithPlan($overdueQuery)),
+                            default => $query,
+                        };
+                    }),
+
+                SelectFilter::make('has_garant')
+                    ->label('Garant')
+                    ->options([
+                        'yes' => 'Avec garant',
+                        'no' => 'Sans garant',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'yes' => $query->whereHas('garant'),
+                        'no' => $query->whereDoesntHave('garant'),
+                        default => $query,
+                    }),
             ])
 
             ->actions([
@@ -232,6 +297,43 @@ class ClientResource extends Resource
                     //     ->label('Supprimer sélection'),
                 ]),
             ]);
+    }
+
+    /**
+     * Sous-requête des identifiants clients possédant au moins un contrat.
+     *
+     * Il n'existe pas de relation imbriquée registrationTokens.financingPlan :
+     * le plan porte registration_token_id, la relation va donc du plan vers le
+     * token. Plutôt que d'ajouter une relation au modèle pour un simple filtre,
+     * on exprime la jointure en SQL.
+     *
+     * @param  (callable(\Illuminate\Database\Query\Builder): void)|null  $planConstraint
+     */
+    private static function clientIdsWithPlan(?callable $planConstraint = null): QueryBuilder
+    {
+        return DB::table('clients')
+            ->select('clients.id')
+            ->whereIn('clients.id', function ($tokens) use ($planConstraint): void {
+                $tokens->select('registration_tokens.client_id')
+                    ->from('registration_tokens')
+                    ->whereIn('registration_tokens.id', function ($plans) use ($planConstraint): void {
+                        $plans->select('financing_plans.id')->from('financing_plans');
+
+                        if ($planConstraint !== null) {
+                            $planConstraint($plans);
+                        }
+                    });
+            });
+    }
+
+    /**
+     * Restreint la requête aux clients possédant un contrat satisfaisant $planConstraint.
+     *
+     * @param  (callable(\Illuminate\Database\Query\Builder): void)|null  $planConstraint
+     */
+    private static function restrictToClientsWithPlan(Builder $query, ?callable $planConstraint = null): Builder
+    {
+        return $query->whereIn('id', self::clientIdsWithPlan($planConstraint));
     }
 
     public static function getRelations(): array

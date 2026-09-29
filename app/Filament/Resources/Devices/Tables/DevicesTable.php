@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Devices\Tables;
 
 use App\Helpers\Helper;
 use App\Models\Device;
+use App\Models\Phone;
 use App\Services\AMAPIClientService;
 use App\Services\DeviceMonitoringService;
 use Filament\Actions\Action;
@@ -13,10 +14,15 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DevicesTable
 {
@@ -58,6 +64,191 @@ class DevicesTable
                     ->label('Dernière connexion'),
             ])
             ->filters([
+                // Note : chaque callback ->query() démarre par la même garde.
+                // Filament évalue ->query() même quand l'état du filtre est vide,
+                // donc un filtre jamais choisi restreindrait quand même la requête.
+                // whereIn sur un tableau vide produisant « 0 = 1 », l'absence de
+                // garde afficherait silencieusement zéro ligne.
+
+                SelectFilter::make('status')
+                    ->label('Statut')
+                    ->options([
+                        'active' => 'Actif',
+                        'payment_due' => 'Paiement dû',
+                        'locked' => 'Verrouillé',
+                        'disabled' => 'Désactivé',
+                    ])
+                    ->multiple(),
+
+                Filter::make('is_locked')
+                    ->label('Verrouillé (statut ou AMAPI)')
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! ($data['isActive'] ?? false)) {
+                            return $query;
+                        }
+
+                        return $query->where(fn (Builder $q) => $q
+                            ->where('status', 'locked')
+                            ->orWhere('status', 'disabled')
+                            ->orWhereHas('amapiDevice', fn (Builder $amapi) => $amapi->where('amapi_state', 'DISABLED'))
+                        );
+                    }),
+
+                SelectFilter::make('amapi_state')
+                    ->label('État AMAPI')
+                    ->options([
+                        'ACTIVE' => 'Enrôlé et actif',
+                        'PROVISIONING' => 'Enrôlement en cours',
+                        'DISABLED' => 'Verrouillé',
+                        'DELETED' => 'Supprimé de l\'enterprise',
+                        'LIBERATED' => 'Libéré (propriété cédée)',
+                    ])
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'amapiDevice',
+                            fn (Builder $amapi) => $amapi->whereIn('amapi_state', $values)
+                        );
+                    }),
+
+                SelectFilter::make('amapi_enrollment')
+                    ->label('Enrôlement')
+                    ->options([
+                        'enrolled' => 'Enrôlé',
+                        'not_enrolled' => 'Non enrôlé',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'enrolled' => $query->whereHas('amapiDevice'),
+                            'not_enrolled' => $query->whereDoesntHave('amapiDevice'),
+                            default => $query,
+                        };
+                    }),
+
+                SelectFilter::make('enrollment_mode')
+                    ->label('Mode d\'enrôlement')
+                    ->options([
+                        'FULLY_MANAGED' => 'Fully Managed',
+                        'COPE' => 'COPE',
+                    ])
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'amapiDevice',
+                            fn (Builder $amapi) => $amapi->whereIn('enrollment_mode', $values)
+                        );
+                    }),
+
+                SelectFilter::make('phone_brand')
+                    ->label('Marque')
+                    ->options(fn (): array => Phone::query()->distinct()->orderBy('brand')->pluck('brand', 'brand')->all())
+                    ->searchable()
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('phone', fn (Builder $phone) => $phone->whereIn('brand', $values));
+                    }),
+
+                SelectFilter::make('liberated')
+                    ->label('Libération')
+                    ->options([
+                        'liberated' => 'Libéré',
+                        'not_liberated' => 'Encore sous contrôle',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = (array) ($data['values'] ?? $data['value'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'liberated' => $query
+                                ->whereHas('financingPlan', fn (Builder $plan) => $plan
+                                    ->where('status', 'paid_in_full')
+                                    ->where('remaining_balance', 0)
+                                )
+                                ->where(fn (Builder $q) => $q
+                                    ->whereDoesntHave('amapiDevice')
+                                    ->orWhereHas('amapiDevice', fn (Builder $amapi) => $amapi->whereNotNull('amapi_released_at'))
+                                ),
+                            'not_liberated' => $query
+                                ->whereHas('amapiDevice')
+                                ->whereDoesntHave('amapiDevice', fn (Builder $amapi) => $amapi->whereNotNull('amapi_released_at')),
+                            default => $query,
+                        };
+                    }),
+
+                Filter::make('locked_since')
+                    ->label('Verrouillé depuis plus de (jours)')
+                    ->schema([
+                        TextInput::make('days')
+                            ->label('Nombre de jours')
+                            ->numeric()
+                            ->minValue(1),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $days = (int) ($data['days'] ?? 0);
+
+                        if (! ($data['isActive'] ?? false) || $days < 1) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'lockHistory',
+                            fn (Builder $history) => $history
+                                ->whereIn('action', ['LOCK', 'LOCK_ATTEMPT'])
+                                ->where('created_at', '<=', now()->subDays($days))
+                        );
+                    }),
+
+                Filter::make('last_seen')
+                    ->label('Dernière connexion')
+                    ->schema([
+                        Select::make('range')
+                            ->label('Période')
+                            ->options([
+                                '24h' => 'Dernières 24 h',
+                                '7d' => '7 derniers jours',
+                                '30d' => '30 derniers jours',
+                            ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! ($data['isActive'] ?? false)) {
+                            return $query;
+                        }
+
+                        return match ($data['range'] ?? null) {
+                            '24h' => $query->where('last_seen_at', '>=', now()->subDay()),
+                            '30d' => $query->where('last_seen_at', '>=', now()->subDays(30)),
+                            '7d' => $query->where('last_seen_at', '>=', now()->subDays(7)),
+                            default => $query,
+                        };
+                    }),
+
                 TrashedFilter::make(),
             ])
             ->actions([

@@ -93,8 +93,8 @@ class DashboardWidgetsTest extends TestCase
 
         $component = Livewire::test(ContractsDevicesOverview::class)->assertOk();
 
-        $this->assertCount(15, $component->viewData('rows'));
-        $this->assertSame(16, $component->viewData('contracts')->total());
+        $this->assertCount(15, $component->instance()->getTable()->getRecords()->all());
+        $this->assertSame(16, $component->instance()->getTable()->getQuery()->count());
     }
 
     public function test_alerts_widget_lists_every_alert_group(): void
@@ -170,27 +170,196 @@ class DashboardWidgetsTest extends TestCase
         }
 
         $user = $this->makePanelUser();
-        $snapshot = $this->livewireSnapshotFor(
-            $this->actingAs($user)->get('/admin')->assertOk()->getContent(),
-            'app.filament.widgets.contracts-devices-overview',
-        );
+        $html = $this->actingAs($user)->get('/admin')->assertOk()->getContent();
+
+        // Les widgets Filament sont montés en lazy : le dashboard livre un
+        // placeholder, et le navigateur appelle __lazyLoad avant toute
+        // interaction. Un update envoyé sur le placeholder (sans ce passage)
+        // represents un état que le navigateur ne produit jamais.
+        [$snapshot, $encoded] = $this->lazyWidgetSnapshot($html, 'app.filament.widgets.contracts-devices-overview');
 
         $this->forgetRegisteredLivewireAliases();
 
-        $response = $this->actingAs($user)->postJson('/livewire/update', [
+        $loaded = $this->actingAs($user)->postJson('/livewire/update', [
             'components' => [[
                 'snapshot' => $snapshot,
-                'updates' => ['paginators' => ['pg-contracts' => ['page' => 2]]],
-                'calls' => [],
+                'updates' => [],
+                'calls' => [['path' => '', 'method' => '__lazyLoad', 'params' => [$encoded]]],
             ]],
         ]);
 
-        $response->assertOk();
+        $loaded->assertOk();
+        $this->assertStringContainsString('fi-wi-table', (string) $loaded->json('components.0.effects.html'));
 
-        $updated = json_decode($response->json('components.0.snapshot'), true);
+        $paged = $this->actingAs($user)->postJson('/livewire/update', [
+            'components' => [[
+                'snapshot' => html_entity_decode((string) $loaded->json('components.0.snapshot')),
+                'updates' => [],
+                'calls' => [['path' => '', 'method' => 'gotoPage', 'params' => [2]]],
+            ]],
+        ]);
+
+        $paged->assertOk();
+
+        $updated = json_decode($paged->json('components.0.snapshot'), true);
 
         $this->assertSame('app.filament.widgets.contracts-devices-overview', $updated['memo']['name']);
-        $this->assertNotEmpty($response->json('components.0.effects.html'));
+        $this->assertNotEmpty($paged->json('components.0.effects.html'));
+    }
+
+    public function test_contracts_widget_filters_by_contract_status(): void
+    {
+        $active = $this->makeContract(status: 'active', clientName: 'Awa Diop');
+        $this->makeContract(status: 'paid_in_full', clientName: 'Moussa Fall');
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->filterTable('status', 'active')
+            ->assertCanSeeTableRecords([$active])
+            ->assertCanNotSeeTableRecords([Financing_plan::where('status', 'paid_in_full')->first()]);
+    }
+
+    public function test_contracts_widget_filters_by_device_status(): void
+    {
+        $locked = $this->makeContract(deviceStatus: 'locked', clientName: 'Awa Diop');
+        $this->makeContract(deviceStatus: 'active', clientName: 'Moussa Fall');
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->filterTable('device_status', 'locked')
+            ->assertCanSeeTableRecords([$locked])
+            ->assertDontSee('Moussa Fall');
+    }
+
+    public function test_contracts_widget_searches_client_phone_imei_and_unlock_code(): void
+    {
+        $byClient = $this->makeContract(clientName: 'Awa Diop', brand: 'Tecno', model: 'Spark 30');
+        $byImei = $this->makeContract(clientName: 'Moussa Fall', imei: '990000862471854');
+        $byCode = $this->makeContract(clientName: 'Fatou Sarr', unlockCode: '7788-1122');
+
+        $component = fn () => Livewire::test(ContractsDevicesOverview::class)->assertOk();
+
+        $component()->filterTable('search', ['term' => 'Awa'])->assertCanSeeTableRecords([$byClient]);
+        $component()->filterTable('search', ['term' => '990000862471854'])->assertCanSeeTableRecords([$byImei]);
+        $component()->filterTable('search', ['term' => '7788-1122'])->assertCanSeeTableRecords([$byCode]);
+    }
+
+    public function test_contracts_widget_search_is_ignored_when_blank(): void
+    {
+        $first = $this->makeContract(clientName: 'Awa Diop');
+        $second = $this->makeContract(clientName: 'Moussa Fall');
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->filterTable('search', ['term' => '   '])
+            ->assertCanSeeTableRecords([$first, $second]);
+    }
+
+    public function test_contracts_widget_filters_overdue_contracts(): void
+    {
+        $overdue = $this->makeContract(status: 'active', nextDueDate: Carbon::now()->subDays(3), clientName: 'Awa Diop');
+        $this->makeContract(status: 'active', nextDueDate: Carbon::now()->addDays(10), clientName: 'Moussa Fall');
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->filterTable('overdue')
+            ->assertCanSeeTableRecords([$overdue])
+            ->assertDontSee('Moussa Fall');
+    }
+
+    public function test_contracts_widget_filters_by_registration_period(): void
+    {
+        $recent = $this->makeContract(clientName: 'Awa Diop', createdAt: Carbon::now()->subDays(2));
+        $this->makeContract(clientName: 'Moussa Fall', createdAt: Carbon::now()->subDays(120));
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->filterTable('created_period', ['isActive' => true, 'range' => '7d'])
+            ->assertCanSeeTableRecords([$recent])
+            ->assertDontSee('Moussa Fall');
+    }
+
+    public function test_contracts_widget_sorts_and_paginates_through_the_table(): void
+    {
+        for ($i = 0; $i < 16; $i++) {
+            $this->makeContract(clientName: sprintf('Client %02d', $i), createdAt: Carbon::now()->subDays($i));
+        }
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->sortTable('created_at', 'desc')
+            ->assertSee('Client 00')
+            ->call('gotoPage', 2)
+            ->assertOk()
+            ->assertSee('Client 15');
+    }
+
+    public function test_contract_can_be_edited_from_the_dashboard_modal(): void
+    {
+        $this->actingAs($this->makePanelUser());
+
+        $plan = $this->makeContract(status: 'active', clientName: 'Awa Diop');
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->mountTableAction('edit', $plan)
+            ->setTableActionData([
+                'remaining_balance' => 42_000,
+                'installment_amount' => 21_000,
+                'status' => 'paid_in_full',
+                'next_payment_due_date' => null,
+            ])
+            ->callMountedTableAction()
+            ->assertHasNoActionErrors();
+
+        $plan->refresh();
+
+        $this->assertSame(42_000.0, (float) $plan->remaining_balance);
+        $this->assertSame(21_000.0, (float) $plan->installment_amount);
+        $this->assertSame('paid_in_full', $plan->getRawOriginal('status'));
+    }
+
+    public function test_contract_modal_keeps_the_raw_status_and_never_writes_the_translated_label(): void
+    {
+        $this->actingAs($this->makePanelUser());
+
+        $plan = $this->makeContract(status: 'active');
+
+        $component = Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->mountTableAction('edit', $plan)
+            // La modale doit se remplir avec l'enum brut, pas le libellé
+            // traduit par l'accessor du modèle.
+            ->assertTableActionDataSet(['status' => 'active']);
+
+        $component
+            ->setTableActionData(['status' => 'defaulted'])
+            ->callMountedTableAction();
+
+        $this->assertSame('defaulted', $plan->refresh()->getRawOriginal('status'));
+        $this->assertDatabaseMissing('financing_plans', ['id' => $plan->id, 'status' => 'En attente']);
+    }
+
+    public function test_contract_edit_action_is_hidden_from_non_admin_users(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $plan = $this->makeContract();
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->assertTableActionHidden('edit', $plan);
+    }
+
+    public function test_contract_edit_action_is_available_to_admin_users(): void
+    {
+        $this->actingAs($this->makePanelUser());
+
+        $plan = $this->makeContract();
+
+        Livewire::test(ContractsDevicesOverview::class)
+            ->assertOk()
+            ->assertTableActionVisible('edit', $plan);
     }
 
     public function test_compiled_theme_asset_is_committed(): void
@@ -238,6 +407,32 @@ class DashboardWidgetsTest extends TestCase
         $this->fail("Aucun composant Livewire [{$componentName}] present dans le rendu de /admin.");
     }
 
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function lazyWidgetSnapshot(string $html, string $componentName): array
+    {
+        foreach (array_reverse(preg_split('/(?=<div[^>]*wire:snapshot=)/', $html, -1, PREG_SPLIT_NO_EMPTY)) as $chunk) {
+            if (! preg_match('/wire:snapshot="([^"]+)"/', $chunk, $matches)) {
+                continue;
+            }
+
+            $snapshot = json_decode(html_entity_decode($matches[1]), true);
+
+            if (($snapshot['memo']['name'] ?? null) !== $componentName) {
+                continue;
+            }
+
+            if (! preg_match('/__lazyLoad\((?:&#039;|\')([^\']+?)(?:&#039;|\')\)/', $chunk, $encoded)) {
+                $this->fail("Le composant [{$componentName}] n'est pas monte en lazy : le scenario de test ne reproduirait pas le navigateur.");
+            }
+
+            return [html_entity_decode($matches[1]), $encoded[1]];
+        }
+
+        $this->fail("Aucun composant Livewire [{$componentName}] present dans le rendu de /admin.");
+    }
+
     private function makeContract(
         string $status = 'active',
         ?float $remainingBalance = 100_000,
@@ -246,6 +441,12 @@ class DashboardWidgetsTest extends TestCase
         ?string $amapiState = null,
         string $amapiSyncStatus = 'synced',
         string $clientName = 'Client Test',
+        string $brand = 'Tecno',
+        string $model = 'Spark 30',
+        string $deviceName = 'Tecno Spark 30',
+        ?string $imei = null,
+        ?Carbon $createdAt = null,
+        string $unlockCode = '1234-5678',
     ): Financing_plan {
         $client = Client::create(['full_name' => $clientName]);
 
@@ -256,8 +457,8 @@ class DashboardWidgetsTest extends TestCase
         ]);
 
         $phone = Phone::create([
-            'brand' => 'Tecno',
-            'model' => 'Spark 30',
+            'brand' => $brand,
+            'model' => $model,
             'stock' => 3,
             'price' => 150_000,
         ]);
@@ -265,8 +466,9 @@ class DashboardWidgetsTest extends TestCase
         $device = Device::create([
             'client_id' => $client->id,
             'phone_id' => $phone->id,
-            'device_name' => 'Tecno Spark 30',
+            'device_name' => $deviceName,
             'device_id' => 'dev-'.uniqid(),
+            'imei' => $imei,
             'status' => $deviceStatus ?? 'active',
         ]);
 
@@ -289,8 +491,12 @@ class DashboardWidgetsTest extends TestCase
             'amapi_sync_status' => $amapiSyncStatus,
             'days_interval' => 30,
             'next_payment_due_date' => $nextDueDate,
-            'next_offline_unlock_code' => '1234-5678',
+            'next_offline_unlock_code' => $unlockCode,
         ]);
+
+        if ($createdAt !== null) {
+            $plan->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+        }
 
         Payment::create([
             'financing_plan_id' => $plan->id,

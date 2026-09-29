@@ -21,8 +21,10 @@ use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class PhoneResource extends Resource
@@ -139,12 +141,97 @@ class PhoneResource extends Resource
                     }),
             ])
             ->filters([
+                // Rappel : chaque callback ->query() se garde sur « isActive ».
+                // Filament l'évalue même sans état ; un filtre jamais choisi ne
+                // doit jamais restreindre la liste.
+
                 SelectFilter::make('status')
                     ->options([
                         'available' => 'Disponible',
                         'reserved' => 'Réservé',
                         'sold' => 'Vendu',
-                    ]),
+                    ])
+                    ->multiple(),
+
+                SelectFilter::make('brand')
+                    ->label('Marque')
+                    ->options(fn (): array => Phone::query()->distinct()->orderBy('brand')->pluck('brand', 'brand')->all())
+                    ->searchable()
+                    ->multiple(),
+
+                SelectFilter::make('model')
+                    ->label('Modèle')
+                    ->options(function ($table): array {
+                        // Le filtre brand est multiple : son état est stocké
+                        // sous « values ». Lire « value » renverrait toujours
+                        // vide et la liste des modèles ne se restreindrait pas.
+                        $state = $table->getFilter('brand')?->getState() ?? [];
+                        $brands = (array) ($state['values'] ?? $state['value'] ?? []);
+
+                        return Phone::query()
+                            ->when(filled($brands), fn (Builder $q) => $q->whereIn('brand', (array) $brands))
+                            ->distinct()
+                            ->orderBy('model')
+                            ->pluck('model', 'model')
+                            ->all();
+                    })
+                    ->searchable()
+                    ->multiple(),
+
+                Filter::make('stock_alert')
+                    ->label('État du stock')
+                    ->schema([
+                        Select::make('state')
+                            ->label('Stock')
+                            ->options([
+                                'out' => 'Rupture (0)',
+                                'low' => 'Stock faible',
+                                'in_stock' => 'En stock',
+                            ]),
+                        TextInput::make('threshold')
+                            ->label('Seuil « stock faible »')
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(3),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! ($data['isActive'] ?? false)) {
+                            return $query;
+                        }
+
+                        return match ($data['state'] ?? null) {
+                            'out' => $query->where('stock', '<=', 0),
+                            'low' => $query->where('stock', '>', 0)->where('stock', '<=', (int) ($data['threshold'] ?? 3)),
+                            'in_stock' => $query->where('stock', '>', 0),
+                            default => $query,
+                        };
+                    }),
+
+                Filter::make('price_range')
+                    ->label('Fourchette de prix (XOF)')
+                    ->schema([
+                        TextInput::make('min')
+                            ->label('Prix minimum')
+                            ->numeric(),
+                        TextInput::make('max')
+                            ->label('Prix maximum')
+                            ->numeric(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! ($data['isActive'] ?? false)) {
+                            return $query;
+                        }
+
+                        if (filled($data['min'] ?? null)) {
+                            $query->where('price', '>=', (float) $data['min']);
+                        }
+
+                        if (filled($data['max'] ?? null)) {
+                            $query->where('price', '<=', (float) $data['max']);
+                        }
+
+                        return $query;
+                    }),
             ])
             ->actions([
                 Action::make('addStock')
