@@ -14,6 +14,7 @@ class AmapiDevice extends Model
 
     protected $casts = [
         'enrolled_at' => 'datetime',
+        'amapi_released_at' => 'datetime',
         'last_command_sent_at' => 'datetime',
         'last_amapi_sync_at' => 'datetime',
         'amapi_metadata' => 'array',
@@ -22,6 +23,25 @@ class AmapiDevice extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    /**
+     * Vérifie si l'appareil a été enrôlé en mode COPE (Android Management API
+     * épinglé). Les appareils antérieurs sont en Fully Managed.
+     */
+    public function isCopeEnrolled(): bool
+    {
+        return $this->enrollment_mode === 'COPE';
+    }
+
+    /**
+     * Indique qu'une libération a été effectuée avec succès côté AMAPI :
+     * suppression pour un appareil Fully Managed, abandon de propriété pour
+     * un appareil COPE.
+     */
+    public function isReleased(): bool
+    {
+        return $this->amapi_released_at !== null || $this->amapi_state === 'LIBERATED';
     }
 
     /**

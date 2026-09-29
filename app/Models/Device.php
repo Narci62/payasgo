@@ -91,11 +91,19 @@ class Device extends Model
 
     /**
      * Vérifie si l'appareil est libéré du contrôle AMAPI
-     * (plan payé + plus de device AMAPI associé)
+     * (plan payé + plus de device AMAPI associé, ou libération déjà effectuée)
      */
     public function isLiberated(): bool
     {
-        return $this->isFullyPaid() && ! $this->amapiDevice;
+        if (! $this->isFullyPaid()) {
+            return false;
+        }
+
+        if (! $this->amapiDevice) {
+            return true;
+        }
+
+        return $this->amapiDevice->isReleased();
     }
 
     /**

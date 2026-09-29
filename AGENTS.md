@@ -100,4 +100,6 @@ Une fois l'étape 1 validée, analyse le projet et liste-moi précisément :
 
 RÈGLE D'OR INTERDITE : Ne jamais improviser, deviner ou ajouter une fonctionnalité non demandée. En cas de doute ou de choix technique à faire, tu dois obligatoirement me poser la question et obtenir ma validation.
 
-Pour finir, chaque ajout de table de migrations ou toute modifications pouvant entrainer des opération sur la base de données doivent bien decrite et avoir obtenir mon accord au préalable.
+Pour finir, chaque ajout de table de migrations ou toute modifications pouvant entrainer des opération sur la base de données doivent bien decrite et avoir obtenir mon accord au préalable et pas de modification sur les fichiers de migration existante, ajouter un nouveau fichier de migration pour corriger ou ajouter une colonne à une table.
+
+NB: Utilise toujours la documentation de laravel de laravel 12 ainsi que les packages recents dans packagist

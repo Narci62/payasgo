@@ -50,7 +50,7 @@ class RetryFailedAmapiSyncs extends Command
                 $amapiClient = app(AMAPIClientService::class);
 
                 if ($log->action === 'DELETE') {
-                    $success = $amapiClient->deleteDevice($log->device, 'RETRY_SYNC');
+                    $success = $amapiClient->releaseDevice($log->device, 'RETRY_SYNC');
                 } elseif ($log->action === 'UNLOCK') {
                     $success = $amapiClient->unlockDevice($log->device, 'RETRY_SYNC');
                 } else {

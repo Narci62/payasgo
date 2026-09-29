@@ -3,8 +3,9 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\SalesReport;
-use App\Filament\Widgets\ClientStatsOverview;
-use App\Filament\Widgets\LatestClients;
+use App\Filament\Widgets\AlertsOverview;
+use App\Filament\Widgets\ContractsDevicesOverview;
+use App\Filament\Widgets\PortfolioKpis;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,8 +30,16 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('PayasGo')
+            ->theme(asset('css/filament/admin/theme.css'))
+            ->maxContentWidth('full')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Indigo,
+                'success' => Color::Emerald,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
+                'info' => Color::Sky,
+                'gray' => Color::Slate,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -41,8 +50,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                ClientStatsOverview::class,
-                LatestClients::class,
+                PortfolioKpis::class,
+                ContractsDevicesOverview::class,
+                AlertsOverview::class,
             ])
             ->middleware([
                 EncryptCookies::class,

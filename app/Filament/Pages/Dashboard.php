@@ -2,8 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\ClientStatsOverview;
-use App\Filament\Widgets\LatestClients;
+use App\Filament\Widgets\AlertsOverview;
+use App\Filament\Widgets\ContractsDevicesOverview;
+use App\Filament\Widgets\PortfolioKpis;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Widgets\AccountWidget;
 
@@ -19,15 +20,16 @@ class Dashboard extends BaseDashboard
 
     public function getColumns(): int|array
     {
-        return 1; // Par exemple, pour un layout en 2 colonnes
+        return 1;
     }
 
     public function getWidgets(): array
     {
         return [
             AccountWidget::class,
-            ClientStatsOverview::class,
-            LatestClients::class,
+            PortfolioKpis::class,
+            ContractsDevicesOverview::class,
+            AlertsOverview::class,
         ];
     }
 }

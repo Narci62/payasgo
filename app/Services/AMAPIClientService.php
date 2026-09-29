@@ -15,29 +15,82 @@ use Illuminate\Support\Facades\Log;
 
 class AMAPIClientService
 {
+    public const ENROLLMENT_FULLY_MANAGED = 'FULLY_MANAGED';
+
+    public const ENROLLMENT_COPE = 'COPE';
+
+    /**
+     * Valeurs acceptées par l'enum amapi_devices.amapi_state.
+     */
+    private const KNOWN_STATES = [
+        'ACTIVE',
+        'DISABLED',
+        'DELETED',
+        'PROVISIONING',
+        'LIBERATED',
+        'UNENROLLED',
+        'AWAITING_DEVICE_ACTIVATION',
+    ];
+
     private string $baseUrl;
 
     private string $enterpriseId;
 
-    private string $serviceAccountKey;
+    private ?string $serviceAccountKey;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.amapi.base_url');
-        $this->enterpriseId = config('services.amapi.enterprise_id');
+        $this->baseUrl = (string) config('services.amapi.base_url');
+        $this->enterpriseId = (string) config('services.amapi.enterprise_id');
         $this->serviceAccountKey = config('services.amapi.service_account_key');
+    }
+
+    /**
+     * Policy AMAPI correspondant à un mode d'enrôlement.
+     */
+    private function policyFor(string $enrollmentMode): string
+    {
+        return $enrollmentMode === self::ENROLLMENT_COPE
+            ? config('services.amapi.policies.cope')
+            : config('services.amapi.policies.default');
+    }
+
+    /**
+     * AMAPI renvoie ses enum préfixés par STATE_ (STATE_ACTIVE,
+     * AWAITING_DEVICE_ACTIVATION...). On les ramène à nos valeurs et on
+     * conserve l'état précédent si la valeur reste inconnue, afin qu'une
+     * réponse inattendue ne casse pas la synchronisation.
+     */
+    private function normalizeState(mixed $state, ?string $fallback = null): ?string
+    {
+        if (! is_string($state) || $state === '') {
+            return $fallback;
+        }
+
+        $candidate = str_contains($state, 'STATE_')
+            ? substr($state, strpos($state, 'STATE_') + 6)
+            : $state;
+
+        $candidate = strtoupper($candidate);
+
+        return in_array($candidate, self::KNOWN_STATES, true) ? $candidate : $fallback;
     }
 
     /**
      * Génère un QR code pour le provisioning d'un nouvel appareil
      */
-    public function generateProvisioningQRCode(Device $device, array $additionalData = []): array
-    {
+    public function generateProvisioningQRCode(
+        Device $device,
+        array $additionalData = [],
+        string $enrollmentMode = self::ENROLLMENT_COPE,
+    ): array {
+        $policy = $this->policyFor($enrollmentMode);
+
         try {
             // Créer un enrollment token dans AMAPI
             $response = Http::withHeaders($this->getAuthHeaders())
                 ->post("{$this->baseUrl}/enterprises/{$this->enterpriseId}/enrollmentTokens", [
-                    'policyName' => "enterprises/{$this->enterpriseId}/policies/cope_policy",
+                    'policyName' => "enterprises/{$this->enterpriseId}/policies/{$policy}",
                     'duration' => '2592000s', // 30 jours
                     'additionalData' => json_encode(array_merge([
                         'device_id' => $device->id,
@@ -66,10 +119,17 @@ class AMAPIClientService
                     'amapi_enterprise_id' => $this->enterpriseId,
                     'enrollment_token' => $enrollmentToken,
                     'qr_code_data' => $qrCode,
-                    'amapi_policy_id' => 'cope_policy',
+                    'amapi_policy_id' => $policy,
                     'amapi_state' => 'PROVISIONING',
+                    'enrollment_mode' => $enrollmentMode,
                 ]
             );
+
+            Log::info('AMAPI enrollment token created', [
+                'device_id' => $device->id,
+                'enrollment_mode' => $enrollmentMode,
+                'policy' => $policy,
+            ]);
 
             return [
                 'success' => true,
@@ -147,11 +207,16 @@ class AMAPIClientService
                 'state' => $googleDevice['state'] ?? null,
             ]);
 
-            AmapiDevice::where('device_id', $laravelId)
-                ->where('amapi_device_id', '!=', $amapiDeviceId)
+            $target = AmapiDevice::where('device_id', $laravelId)->first();
+
+            if (! $target) {
+                continue;
+            }
+
+            AmapiDevice::where('id', $target->id)
                 ->update([
                     'amapi_device_id' => $amapiDeviceId,
-                    'amapi_state' => $googleDevice['state'] ?? null,
+                    'amapi_state' => $this->normalizeState($googleDevice['state'] ?? null, $target->amapi_state),
                     'last_amapi_sync_at' => now(),
                 ]);
         }
@@ -286,6 +351,8 @@ class AMAPIClientService
             throw new Exception('Device not enrolled in AMAPI');
         }
 
+        $policy = $this->policyFor($amapiDevice->enrollment_mode);
+
         $lockHistory = DeviceLockHistory::create([
             'device_id' => $device->id,
             'financing_plan_id' => $device->financingPlan?->id,
@@ -301,7 +368,7 @@ class AMAPIClientService
                 ->patch(
                     "{$this->baseUrl}/enterprises/{$this->enterpriseId}/devices/{$amapiDevice->amapi_device_id}",
                     [
-                        'policyName' => "enterprises/{$this->enterpriseId}/policies/cope_policy",
+                        'policyName' => "enterprises/{$this->enterpriseId}/policies/{$policy}",
                         'state' => 'ACTIVE',
                     ]
                 );
@@ -309,7 +376,7 @@ class AMAPIClientService
             if ($response->successful()) {
                 $amapiDevice->update([
                     'amapi_state' => 'ACTIVE',
-                    'amapi_policy_id' => 'default_policy',
+                    'amapi_policy_id' => $policy,
                     'last_command_sent_at' => now(),
                     'last_command_type' => 'UNLOCK',
                     'last_command_status' => 'SUCCESS',
@@ -346,6 +413,36 @@ class AMAPIClientService
 
             return false;
         }
+    }
+
+    /**
+     * Libère un appareil du contrôle AMAPI en fonction de son mode d'enrôlement.
+     *
+     * En Fully Managed, l'appareil doit être supprimé de l'enterprise.
+     * En COPE, l'ownership doit être cédé via la commande
+     * RELINQUISH_OWNERSHIP, la policy restant appliquée côté AMAPI.
+     *
+     * deleteDevice() laisse la ligne amapi_devices dans son état d'avant
+     * suppression, on y estampille donc la libération pour que l'appareil ne
+     * soit pas proposé une seconde fois à la libération.
+     */
+    public function releaseDevice(Device $device, string $reason, ?int $userId = null): bool
+    {
+        $amapiDevice = $device->amapiDevice;
+
+        if (! $amapiDevice) {
+            throw new Exception('Device not enrolled in AMAPI');
+        }
+
+        $released = $amapiDevice->isCopeEnrolled()
+            ? $this->relinquishOwnership($device, $reason, $userId)
+            : $this->deleteDevice($device, $reason, $userId);
+
+        if ($released) {
+            $amapiDevice->update(['amapi_released_at' => now()]);
+        }
+
+        return $released;
     }
 
     /**
@@ -515,7 +612,7 @@ class AMAPIClientService
                 $data = $response->json();
 
                 $amapiDevice->update([
-                    'amapi_state' => $data['state'],
+                    'amapi_state' => $this->normalizeState($data['state'] ?? null, $amapiDevice->amapi_state),
                     'amapi_metadata' => $data,
                     'last_amapi_sync_at' => now(),
                 ]);
@@ -587,7 +684,7 @@ class AMAPIClientService
     /**
      * Headers d'authentification AMAPI
      */
-    private function getAuthHeaders(): array
+    protected function getAuthHeaders(): array
     {
         // À adapter selon votre méthode d'authentification AMAPI
         // (OAuth2, Service Account, API Key, etc.)
@@ -601,7 +698,7 @@ class AMAPIClientService
     /**
      * Obtient un access token (à implémenter selon AMAPI)
      */
-    private function getAccessToken(): string
+    protected function getAccessToken(): string
     {
         // return Helper::getAccessToken() ?? '';
 

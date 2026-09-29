@@ -85,9 +85,15 @@ class DevicesTable
                     ->color('gray')
                     ->modalHeading('Historique de verrouillage')
                     ->modalContent(fn (Device $record) => view('filament.devices.lock-history', [
-                        'lockHistory' => $record->lockHistory()->latest()->limit(20)->get(),
+                        'lockHistory' => $record->lockHistory()
+                            ->with(['device.client', 'triggeredByUser'])
+                            ->latest()
+                            ->limit(20)
+                            ->get(),
                     ]))
-                    ->modalWidth('3xl')
+                    ->modalWidth('4xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Fermer')
                     ->visible(fn (Device $record) => ! $record->isLiberated()),
                 ActionGroup::make([
 
@@ -171,17 +177,24 @@ class DevicesTable
 
                     // Désinstaller AMAPI
                     Action::make('uninstall_amapi')
-                        ->label('Désinstaller AMAPI')
+                        ->label(fn (Device $record) => $record->amapiDevice?->isCopeEnrolled()
+                            ? 'Libérer la propriété AMAPI'
+                            : 'Désinstaller AMAPI')
                         ->icon('heroicon-o-no-symbol')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->modalHeading('Désinstaller AMAPI ?')
-                        ->modalDescription('Le device sera libéré du contrôle AMAPI. Cette action est irréversible.')
+                        ->modalHeading(fn (Device $record) => $record->amapiDevice?->isCopeEnrolled()
+                            ? 'Libérer la propriété AMAPI ?'
+                            : 'Désinstaller AMAPI ?')
+                        ->modalDescription(fn (Device $record) => $record->amapiDevice?->isCopeEnrolled()
+                            ? 'La propriété de l\'appareil sera cédée à l\'utilisateur : il sort du contrôle AMAPI et conserve ses applications. Cette action est irréversible.'
+                            : 'Le device sera supprimé de l\'enterprise AMAPI. Cette action est irréversible.')
                         ->action(function (Device $record) {
                             $amapiClient = app(AMAPIClientService::class);
+                            $isCope = (bool) $record->amapiDevice?->isCopeEnrolled();
 
                             try {
-                                $success = $amapiClient->deleteDevice(
+                                $success = $amapiClient->releaseDevice(
                                     $record,
                                     'ADMIN_UNINSTALL',
                                     auth()->id()
@@ -189,12 +202,14 @@ class DevicesTable
 
                                 if ($success) {
                                     Notification::make()
-                                        ->title('Device désinstallé de AMAPI')
+                                        ->title($isCope
+                                            ? 'Propriété AMAPI libérée'
+                                            : 'Device désinstallé de AMAPI')
                                         ->success()
                                         ->send();
                                 } else {
                                     Notification::make()
-                                        ->title('Échec de la désinstallation')
+                                        ->title('Échec de la libération')
                                         ->danger()
                                         ->send();
                                 }
@@ -267,18 +282,6 @@ class DevicesTable
                     //         !$record->amapiDevice ||
                     //             $record->amapiDevice->amapi_state === 'PROVISIONING'
                     //     ),
-
-                    // Voir l'historique de verrouillage
-                    Action::make('lock_history')
-                        ->label('Historique de verrouillage')
-                        ->icon('heroicon-o-clock')
-                        ->color('gray')
-                        ->modalHeading('Historique de verrouillage')
-                        ->modalContent(fn (Device $record) => view('filament.devices.lock-history', [
-                            'lockHistory' => $record->lockHistory()->latest()->limit(20)->get(),
-                        ]))
-                        ->modalWidth('3xl')
-                        ->visible(fn (Device $record) => ! $record->isLiberated()),
 
                     // delete action
                     Action::make('delete_device')

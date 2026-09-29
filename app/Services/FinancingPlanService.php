@@ -320,7 +320,7 @@ class FinancingPlanService
 
             try {
                 if ($action === 'DELETE') {
-                    $success = (new AMAPIClientService)->deleteDevice($device, 'PAYMENT_RECEIVED');
+                    $success = (new AMAPIClientService)->releaseDevice($device, 'PAYMENT_RECEIVED');
                 } else {
                     $success = (new AMAPIClientService)->unlockDevice($device, 'PAYMENT_RECEIVED');
                 }

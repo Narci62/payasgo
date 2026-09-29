@@ -1,0 +1,250 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+@theme {
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+}
+
+/* ---------- Chrome global ---------- */
+
+.fi-sidebar {
+    --fi-sidebar-width: 17rem;
+}
+
+.fi-topbar {
+    @apply shadow-none;
+}
+
+.fi-btn {
+    @apply font-semibold;
+}
+
+/* ---------- Bloc 1 : cartes KPI ---------- */
+
+.pg-kpi-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6;
+}
+
+.pg-kpi {
+    @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition dark:border-white/10 dark:bg-white/5;
+}
+
+.pg-kpi::after {
+    @apply pointer-events-none absolute inset-x-0 top-0 h-1;
+    content: '';
+    background: var(--pg-kpi-accent, var(--primary-500));
+}
+
+.pg-kpi-icon {
+    @apply flex size-10 shrink-0 items-center justify-center rounded-xl;
+    color: var(--pg-kpi-accent, var(--primary-500));
+    background-color: color-mix(in oklab, var(--pg-kpi-accent, var(--primary-500)) 12%, transparent);
+}
+
+.pg-kpi-label {
+    @apply text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400;
+}
+
+.pg-kpi-value {
+    @apply text-2xl font-bold tracking-tight text-gray-950 tabular-nums dark:text-white;
+}
+
+.pg-kpi-value-sm {
+    @apply text-xl font-bold tracking-tight text-gray-950 tabular-nums dark:text-white;
+}
+
+.pg-kpi-hint {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+/* ---------- Bloc 2 : tableau unifié contrat / appareil ---------- */
+
+.pg-panel {
+    @apply overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs dark:border-white/10 dark:bg-white/5;
+}
+
+.pg-panel-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-white/10;
+}
+
+.pg-panel-title {
+    @apply flex items-center gap-2 text-base font-semibold text-gray-950 dark:text-white;
+}
+
+.pg-panel-subtitle {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.pg-panel-body {
+    @apply overflow-x-auto;
+}
+
+.pg-table {
+    @apply w-full min-w-[64rem] border-collapse text-sm;
+}
+
+.pg-table thead th {
+    @apply border-b border-gray-200 bg-gray-50/80 px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase whitespace-nowrap dark:border-white/10 dark:bg-white/5 dark:text-gray-400;
+}
+
+.pg-table tbody td {
+    @apply border-b border-gray-100 px-4 py-3 align-middle text-gray-700 dark:border-white/5 dark:text-gray-400;
+}
+
+.pg-table tbody tr {
+    @apply transition-colors hover:bg-primary-50/50 dark:hover:bg-white/5;
+}
+
+.pg-table tbody tr:last-child td {
+    @apply border-b-0;
+}
+
+.pg-table .pg-num {
+    @apply text-right font-medium tabular-nums;
+}
+
+.pg-table .pg-overdue {
+    @apply bg-danger-50/60 dark:bg-danger-500/10;
+}
+
+.pg-cell-strong {
+    @apply font-semibold text-gray-950 dark:text-white;
+}
+
+.pg-cell-muted {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.pg-cell-actions {
+    @apply text-right whitespace-nowrap;
+}
+
+/* ---------- Bloc 3 : alertes ---------- */
+
+.pg-alert-list {
+    @apply divide-y divide-gray-100 dark:divide-white/5;
+}
+
+.pg-alert {
+    @apply flex flex-wrap items-center justify-between gap-3 px-5 py-3.5;
+}
+
+.pg-alert-main {
+    @apply flex min-w-0 items-center gap-3;
+}
+
+.pg-alert-icon {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-lg;
+}
+
+.pg-alert-icon-danger {
+    @apply bg-danger-50 text-danger-600 dark:bg-danger-500/15 dark:text-danger-400;
+}
+
+.pg-alert-icon-warning {
+    @apply bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400;
+}
+
+.pg-alert-icon-info {
+    @apply bg-info-50 text-info-600 dark:bg-info-500/15 dark:text-info-400;
+}
+
+.pg-alert-icon-success {
+    @apply bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400;
+}
+
+.pg-alert-title {
+    @apply truncate text-sm font-medium text-gray-950 dark:text-white;
+}
+
+.pg-alert-detail {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.pg-empty {
+    @apply flex flex-col items-center justify-center gap-2 px-5 py-12 text-center;
+}
+
+.pg-empty-title {
+    @apply text-sm font-semibold text-gray-950 dark:text-white;
+}
+
+.pg-empty-text {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.pg-footer {
+    @apply flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-3 text-sm dark:border-white/10;
+}
+
+/* ---------- Modale : historique de verrouillage ---------- */
+
+.pg-history {
+    @apply overflow-hidden rounded-xl border border-gray-200 dark:border-white/10;
+}
+
+.pg-history-scroll {
+    @apply max-h-[28rem] overflow-y-auto;
+}
+
+.pg-history-table {
+    @apply w-full min-w-[58rem] border-collapse text-sm;
+}
+
+.pg-history-table thead th {
+    @apply sticky top-0 z-10 border-b border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase whitespace-nowrap dark:border-white/10 dark:bg-gray-900 dark:text-gray-400;
+}
+
+.pg-history-table tbody tr:nth-child(even) {
+    @apply bg-gray-50/50 dark:bg-white/[0.02];
+}
+
+.pg-history-table tbody tr {
+    @apply transition-colors hover:bg-primary-50/50 dark:hover:bg-white/5;
+}
+
+.pg-history-table tbody td {
+    @apply border-b border-gray-100 px-4 py-3 align-middle text-gray-700 dark:border-white/5 dark:text-gray-400;
+}
+
+.pg-history-table tbody tr:last-child td {
+    @apply border-b-0;
+}
+
+.pg-history-date {
+    @apply whitespace-nowrap font-medium tabular-nums text-gray-950 dark:text-white;
+}
+
+.pg-history-cell {
+    @apply whitespace-nowrap;
+}
+
+.pg-history-client {
+    @apply font-medium text-gray-950 dark:text-white;
+}
+
+.pg-history-error {
+    @apply mt-1 rounded-md bg-danger-50 px-2 py-1 font-mono text-xs break-all text-danger-700 dark:bg-danger-500/10 dark:text-danger-300;
+}
+
+.pg-history-empty {
+    @apply flex flex-col items-center justify-center gap-2 px-5 py-14 text-center;
+}
+
+.pg-history-empty-icon {
+    @apply flex size-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-500;
+}
+
+.pg-history-empty-title {
+    @apply text-sm font-semibold text-gray-950 dark:text-white;
+}
+
+.pg-history-empty-text {
+    @apply max-w-sm text-sm text-gray-500 dark:text-gray-400;
+}
